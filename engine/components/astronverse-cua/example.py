@@ -9,6 +9,7 @@
 from astronverse.cua.computer_use import ComputerUseAgent
 import os
 
+
 def main():
     """示例主函数"""
     # 从命令行参数或默认值获取指令
