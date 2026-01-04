@@ -192,7 +192,7 @@ agent = ComputerUseAgent(
 ```bash
 # 方法1: 先安装组件（推荐）
 pip install -e .
-python test_integration.py
+python example.py
 
 # 方法2: 在RPA项目根目录运行
 # 从项目根目录运行，系统会自动找到依赖

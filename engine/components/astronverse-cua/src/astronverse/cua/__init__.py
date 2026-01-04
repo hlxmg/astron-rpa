@@ -3,6 +3,7 @@ Astronverse CUA - Computer Use Agent
 使用视觉大模型操作电脑的原子能力组件
 """
 
+import importlib.metadata
 from astronverse.cua.computer_use import ComputerUseAgent
 from astronverse.cua.action_parser import (
     parse_action_to_structure_output,
@@ -26,4 +27,7 @@ except ImportError:
         "parsing_response_to_pyautogui_code",
     ]
 
-__version__ = "1.0.1"
+try:
+    __version__ = importlib.metadata.version("astronverse-cua")
+except importlib.metadata.PackageNotFoundError:
+    __version__ = "1.0.1" # fallback
