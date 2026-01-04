@@ -42,7 +42,6 @@ def main():
 
     # 检查 API Key
     api_key = os.getenv("ARK_API_KEY") or os.getenv("OPENAI_API_KEY")
-    api_key = "a3b7c93e-e998-4604-9949-dd439db686c5"
     if not api_key:
         print("=" * 60)
         print("错误: 未设置 API Key")
