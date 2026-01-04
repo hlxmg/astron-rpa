@@ -26,4 +26,4 @@ except ImportError:
         "parsing_response_to_pyautogui_code",
     ]
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
