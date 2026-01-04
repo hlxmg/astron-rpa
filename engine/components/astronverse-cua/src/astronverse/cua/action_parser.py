@@ -167,7 +167,7 @@ def parse_action_to_structure_output(
     if "point=" in text:
         text = text.replace("point=", "start_box=")
 
-    if model_type == "qwen25vl" or model_type == "doubao":
+    if model_type == "qwen25vl":
         smart_resize_height, smart_resize_width = smart_resize(
             origin_resized_height,
             origin_resized_width,
@@ -279,7 +279,7 @@ def parse_action_to_structure_output(
 
                 # Convert to float and scale by 1000
                 # Qwen2.5vl output absolute coordinates, qwen2vl output relative coordinates
-                if model_type == "qwen25vl" or model_type == "doubao":
+                if model_type == "qwen25vl":
                     float_numbers = []
                     for num_idx, num in enumerate(numbers):
                         num = float(num)

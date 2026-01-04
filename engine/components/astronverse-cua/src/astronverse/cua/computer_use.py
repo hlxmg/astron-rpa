@@ -153,7 +153,6 @@ class ComputerUseAgent:
         self.line = line
 
         print(f"[初始化] 截图保存目录: {self.screenshot_dir}")
-        print(f"[初始化] 最多保留截图数量: {self.max_screenshots}")
 
     def take_screenshot(self) -> Tuple[str, str]:
         """
