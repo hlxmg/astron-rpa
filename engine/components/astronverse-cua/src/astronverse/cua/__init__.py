@@ -30,4 +30,4 @@ except ImportError:
 try:
     __version__ = importlib.metadata.version("astronverse-cua")
 except importlib.metadata.PackageNotFoundError:
-    __version__ = "1.0.1" # fallback
+    __version__ = "1.0.1"  # fallback

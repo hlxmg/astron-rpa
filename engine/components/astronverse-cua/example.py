@@ -23,12 +23,11 @@ except ImportError:
     if src_path.exists():
         sys.path.insert(0, str(src_path.parent))
         from astronverse.cua.computer_use import ComputerUseAgent
+
         print("[提示] 使用开发模式，建议运行 'pip install -e .' 安装包")
     else:
         raise ImportError(
-            "无法导入 astronverse.cua。请先安装包：\n"
-            "  cd engine/components/astronverse-cua\n"
-            "  pip install -e ."
+            "无法导入 astronverse.cua。请先安装包：\n  cd engine/components/astronverse-cua\n  pip install -e ."
         )
 
 
@@ -87,6 +86,7 @@ def main():
     except Exception as e:
         print(f"\n[错误] 执行失败: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 
