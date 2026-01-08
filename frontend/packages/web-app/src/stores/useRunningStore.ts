@@ -44,7 +44,6 @@ export const useRunningStore = defineStore('running', () => {
     debugData.value = {}
     RpaExecutor?.destroy()
     dataTableListenController?.abort()
-    dataTable.value = null
     closeDataTableListener()
   }
 
@@ -282,8 +281,8 @@ export const useRunningStore = defineStore('running', () => {
    * 清空单元格数据
    */
   const clearDataTable = async () => {
-    await deleteDataTable(processStore.project.id)
     dataTable.value = null
+    await deleteDataTable(processStore.project.id)
   }
 
   /**
@@ -293,7 +292,8 @@ export const useRunningStore = defineStore('running', () => {
     dataTableListenController = startDataTableListener(processStore.project.id, (res) => {
       if (res.event === 'file_deleted') {
         dataTable.value = null
-      } else if (res.event === 'file_changed') {
+      }
+      else if (res.event === 'file_changed') {
         fetchDataTable()
       }
     })

@@ -16,6 +16,7 @@ from astronverse.picker import (
 from astronverse.picker.engines.uia_picker import UIAElement, UIAOperate
 from astronverse.picker.logger import logger
 from astronverse.picker.utils.browser import BrowserControlFinder
+from astronverse.picker import APP
 
 
 class PickerCore(IPickerCore):
@@ -135,7 +136,7 @@ class PickerCore(IPickerCore):
         # 策略运行
         res = svc.strategy.run(self.last_strategy_svc)
         if not res:
-            return DrawResult(success=False, error_message="拾取取消，请确认目标元素后重新拾取")
+            return DrawResult(success=False, error_message="")
 
         with self.lock:
             self.last_element = res

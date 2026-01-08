@@ -8,8 +8,8 @@ import to from 'await-to-js'
 import { isEmpty } from 'lodash-es'
 import { computed, reactive, ref } from 'vue'
 
-import { uploadFile } from '@/api/resource'
 import { aiFeedback } from '@/api/common'
+import { uploadFile } from '@/api/resource'
 import { useUserStore } from '@/stores/useUserStore'
 
 const modal = NiceModal.useModal()
@@ -135,7 +135,7 @@ async function handleSubmit() {
   }
 
   const [error] = await to(aiFeedback({
-    username: useUserStore().currentUserInfo?.loginName,
+    username: useUserStore().currentUserInfo?.name || useUserStore().currentUserInfo?.loginName,
     categories: JSON.stringify({
       内容安全类: formData.contentSafety,
       功能缺陷类: formData.functionalDefect,
@@ -144,7 +144,12 @@ async function handleSubmit() {
     imageIds: imageIds.filter(Boolean),
   }))
 
-  error ? message.error('提交失败，请稍后重试') : message.success('举报已受理，感谢您的反馈')
+  if (error) {
+    message.error('提交失败，请稍后重试')
+  } else {
+    message.success('举报已受理，感谢您的反馈')
+    modal.hide()
+  }
 }
 </script>
 

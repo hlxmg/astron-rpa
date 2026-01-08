@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AuthType, Edition, InviteInfo } from '../../interface'
+import type { AuthType, Edition, InviteInfo, Platform } from '../../interface'
 
 import ForgotPassword from './ForgotPassword.vue'
 import { useAuthFlow } from './hooks/useAuthFlow'
@@ -10,6 +10,7 @@ import SetPassword from './SetPassword.vue'
 import TenantSelect from './TenantSelect.vue'
 
 const props = defineProps({
+  platform: { type: String as () => Platform },
   baseUrl: { type: String },
   inviteInfo: { type: Object as () => InviteInfo, default: () => null },
   edition: { type: String as () => Edition, default: 'saas' },
@@ -40,6 +41,7 @@ defineExpose({
   <div class="auth-container-content h-[540px]">
     <Login
       v-if="currentFormMode === 'login'"
+      :key="`${edition}_${authType}_login`"
       :invite-info="inviteInfo"
       :edition="edition"
       :auth-type="authType"
@@ -52,6 +54,7 @@ defineExpose({
 
     <Register
       v-else-if="currentFormMode === 'register'"
+      :key="`${edition}_${authType}_register`"
       :edition="edition"
       :auth-type="authType"
       :running="running"
@@ -62,6 +65,7 @@ defineExpose({
 
     <ForgotPassword
       v-else-if="['forgotPasswordWithSysUpgrade', 'forgotPassword'].includes(currentFormMode)"
+      :key="`${edition}_${authType}_forgotPassword`"
       :running="running"
       :title="currentFormMode === 'forgotPasswordWithSysUpgrade' ? '系统已升级，请重新设置密码' : ''"
       @submit="handleForgotPassword"
@@ -70,6 +74,7 @@ defineExpose({
 
     <SetPassword
       v-else-if="['setPasswordWithSysUpgrade', 'setPassword'].includes(currentFormMode)"
+      :key="`${edition}_${authType}_setPassword`"
       :title="currentFormMode === 'setPasswordWithSysUpgrade' ? '系统已升级，请重新设置密码' : ''"
       :running="running"
       :invite-info="inviteInfo"
@@ -79,6 +84,7 @@ defineExpose({
 
     <ModifyPassword
       v-else-if="['modifyPassword'].includes(currentFormMode)"
+      :key="`${edition}_${authType}_modifyPassword`"
       :running="running"
       :invite-info="inviteInfo"
       :edition="edition"
@@ -89,6 +95,7 @@ defineExpose({
 
     <TenantSelect
       v-else-if="currentFormMode === 'tenantSelect'"
+      :key="`${edition}_${authType}_tenantSelect`"
       :invite-info="inviteInfo"
       :edition="edition"
       :auth-type="authType"
