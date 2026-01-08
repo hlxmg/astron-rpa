@@ -58,6 +58,7 @@ API_URL = "http://127.0.0.1:{}/api/rpa-ai-service/cua/chat/completions".format(
     atomicMg.cfg().get("GATEWAY_PORT") if atomicMg.cfg().get("GATEWAY_PORT") else "13159"
 )
 
+
 class ComputerUseAgent:
     """计算机使用代理类 - 使用视觉大模型操作电脑"""
 
@@ -202,9 +203,7 @@ class ComputerUseAgent:
             return image_path  # 如果出错，返回原始路径
 
     @staticmethod
-    def extract_click_coordinates(
-        action: Dict, image_height: int, image_width: int
-    ) -> Optional[Tuple[int, int]]:
+    def extract_click_coordinates(action: Dict, image_height: int, image_width: int) -> Optional[Tuple[int, int]]:
         """
         从动作中提取点击坐标
 
@@ -330,7 +329,7 @@ class ComputerUseAgent:
         """
         data = {
             "model": "doubao-1-5-ui-tars-250428",  # 选择大模型，替换为实际模型标识
-            "messages": messages
+            "messages": messages,
         }
 
         try:
@@ -587,6 +586,7 @@ class ComputerUseAgent:
             pyautogui.FAILSAFE = current_failsafe  # 鼠标移到左上角会触发异常停止
             pyautogui.PAUSE = current_pause  # 每个操作之间暂停0.5秒
 
+
 class ComputerUse:
     """Computer Use Agent包装类，用于原子能力注册"""
 
@@ -608,14 +608,14 @@ class ComputerUse:
         ],
     )
     def run(
-            instruction: str,
-            api_key: str = None,
-            model: str = "doubao-1-5-ui-tars-250428",
-            language: str = "Chinese",
-            max_steps: int = 20,
-            screenshot_dir: str = None,
-            temperature: float = 0.0,
-            provider: str = "doubao",
+        instruction: str,
+        api_key: str = None,
+        model: str = "doubao-1-5-ui-tars-250428",
+        language: str = "Chinese",
+        max_steps: int = 20,
+        screenshot_dir: str = None,
+        temperature: float = 0.0,
+        provider: str = "doubao",
     ):
         """
         运行计算机使用代理任务
