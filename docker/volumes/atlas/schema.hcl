@@ -1261,6 +1261,11 @@ table "c_param" {
     null = true
     type = int
   }
+  column "module_id" {
+    null    = true
+    type    = varchar(100)
+    comment = "python模块id"
+  }
   index "c_param_id_IDX" {
     columns = [column.id]
   }
@@ -2908,6 +2913,11 @@ table "openai_executions" {
     type    = varchar(50)
     default = "EXECUTOR"
     comment = "执行位置"
+  }
+  column "recording_config" {
+    null    = true
+    type    = text
+    comment = "录制配置"
   }
   column "version" {
     null    = true
