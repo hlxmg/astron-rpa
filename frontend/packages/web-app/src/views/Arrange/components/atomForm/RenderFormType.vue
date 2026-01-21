@@ -9,14 +9,18 @@ import {
 import { NiceModal } from '@rpa/components'
 import type { Ref } from 'vue'
 import { computed, inject, ref, watch } from 'vue'
+import { debounce } from 'lodash-es'
 
 import { ATOM_FORM_TYPE } from '@/constants/atom'
 import useCursorStore from '@/stores/useCursorStore'
+import { useFlowStore } from '@/stores/useFlowStore'
 import { ElementPickModal } from '@/views/Arrange/components/pick'
 import { ORIGIN_BUTTON } from '@/views/Arrange/config/atom'
+import { utilsManager } from '@/platform'
 
 import CvPickBtn from '../cvPick/CvPickBtn.vue'
 
+import AIWorkFlow from './AIWorkFlow.vue'
 import AtomContractElement from './AtomContractElement.vue'
 import AtomGrid from './AtomGrid.vue'
 import AtomKeyboard from './AtomKeyboard.vue'
@@ -28,7 +32,7 @@ import AtomScriptParams from './AtomScriptParams.vue'
 import AtomSlider from './AtomSlider.vue'
 import { createDom } from './hooks/useAtomVarPopover'
 import { isConditionalKeys } from './hooks/useBaseConfig'
-import useRenderFormType, { formBtnHandle, generateInputVal, handleInput, handlePaste, inputListListener, syncCurrentAtomData } from './hooks/useRenderFormType'
+import useRenderFormType, { formBtnHandle, generateHtmlVal, generateInputVal, handlePaste, inputListListener, syncCurrentAtomData } from './hooks/useRenderFormType'
 import ProcessParam from './ProcessParam.vue'
 
 const { iconStyle, itemData, itemType, varType } = defineProps({
@@ -50,9 +54,13 @@ const { iconStyle, itemData, itemType, varType } = defineProps({
   },
 })
 
+const emit = defineEmits(['update'])
+
 const { handleModalButton, handleTextareaModal, handleHTMLContentPaste } = useRenderFormType()
 const isShowFormItem = inject<Ref<boolean>>('showAtomFormItem', ref(true))
+const atomFormDisabled = inject<Ref<boolean>>('atomFormDisabled', ref(false)) // 自定义组件设置预览禁止输入
 const cursorStore = useCursorStore()
+const flowStore = useFlowStore()
 const container = ref(generateInputVal(itemData))
 const selectValue = ref(generateInputVal(itemData))
 const pickLoading = ref(false)
@@ -76,7 +84,6 @@ watch(
 )
 
 watch(() => itemData.value, () => { // 特殊处理自定义对话框视图多个控件联动更新
-  // console.log('itemData.value', itemData.value)
   const { formType: { type }, allowReverse } = itemData
   if (type === ATOM_FORM_TYPE.SELECT && allowReverse) {
     selectValue.value = generateInputVal(itemData)
@@ -111,6 +118,17 @@ function clickHandle(e?: Event) {
   formBtnHandle(itemData, itemType, extra)
 }
 
+function handleFileSelect() {
+  utilsManager.showDialog(itemData.formType.params).then((res) => {
+    if (res) {
+      const strVal = Array.isArray(res) ? res.join(',') : res
+      itemData.value = strVal
+      flowStore.setFormItemValue(itemData.key, strVal, flowStore.activeAtom.id)
+      emit('update')
+    }
+  })
+}
+
 // 不会刷新当前配置页
 function handleSetFormDataNF(val: any) {
   itemData.value = val
@@ -118,10 +136,14 @@ function handleSetFormDataNF(val: any) {
 }
 
 function handleAtomRemoteSelect(val: any) {
-  // console.log('val: ', val);
   itemData.value = val.value
   syncCurrentAtomData(itemData, false)
 }
+
+const handleInput = debounce((event: Event, itemData: RPA.AtomDisplayItem) => {
+  const target = event.target as HTMLDivElement
+  generateHtmlVal(target, itemData)
+}, 500)
 
 inputListListener(itemData, itemType)
 </script>
@@ -139,8 +161,8 @@ inputListListener(itemData, itemType)
   <div
     v-if="itemType === ATOM_FORM_TYPE.INPUT"
     :id="`rpa_input_${itemData.key}`"
-    class="editor flex-1 min-h-5" :class="{ 'cursor-not-allowed': !isEdit }"
-    :contenteditable="isEdit"
+    class="editor flex-1 min-h-5" :class="{ 'cursor-not-allowed': !isEdit || atomFormDisabled }"
+    :contenteditable="isEdit && !atomFormDisabled"
     @input="(e) => handleInput(e, itemData)"
     @paste="(e) => handlePaste(e, itemData)"
     @blur="cursorStore.handleBlur"
@@ -167,7 +189,7 @@ inputListListener(itemData, itemType)
     v-if="itemType === ATOM_FORM_TYPE.FILE"
     class="cursor-pointer mr-1"
     :style="iconStyle"
-    @click="clickHandle"
+    @click="handleFileSelect"
   />
   <!-- 变量框 -->
   <AtomPopover
@@ -384,19 +406,25 @@ inputListListener(itemData, itemType)
     :params="itemData"
     @refresh="handleSetFormDataNF"
   />
+  <!-- 选择AI工作流 -->
+  <AIWorkFlow
+    v-if="itemType === ATOM_FORM_TYPE.AIWORKFLOW"
+    :params="itemData"
+    @refresh="handleSetFormDataNF"
+  />
 </template>
 
 <style lang="scss" scoped>
 .editor {
   width: calc(100% - 42px);
   padding: 0 5px;
-  white-space: pre-wrap;
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
   --custom-cursor-size: 18px;
   margin-right: 3px;
-  max-height: 300px;
-  overflow: auto;
   &::-webkit-scrollbar {
-    width: 4px;
+    height: 0px;
   }
 
   &:focus {

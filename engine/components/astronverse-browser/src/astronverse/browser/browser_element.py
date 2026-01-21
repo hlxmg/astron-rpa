@@ -973,8 +973,8 @@ class BrowserElement:
     @atomicMg.atomic("BrowserElement")
     def slider_hover(
         browser_obj: Browser = None,
-        slider_element: WebPick = None,
-        progress_element: WebPick = None,
+        element_slider: WebPick = None,
+        element_progress: WebPick = None,
         percent_value: float = 0.0,
         drag_direction: ElementDragDirectionTypeFlag = ElementDragDirectionTypeFlag.Left,
         drag_type: ElementDragTypeFlag = ElementDragTypeFlag.Start,
@@ -998,14 +998,14 @@ class BrowserElement:
         percent_value = max(0.0, min(1.0, percent_value / 100))
         # 定位滑块和滑条元素
         # 滑块（要拖动的元素）
-        element = Locator.locator(slider_element.get("elementData"), cur_target_app=browser_obj.browser_type.value)
+        element = Locator.locator(element_slider.get("elementData"), cur_target_app=browser_obj.browser_type.value)
         if isinstance(element.rect(), list):
             raise Exception("滑块元素定位不唯一，请检查！")
         slider_center = element.point()
 
         # 滑条（滑块可移动的轨道）
         element = Locator.locator(
-            progress_element.get("elementData"), cur_target_app=browser_obj.browser_type.value, scroll_into_view=False
+            element_progress.get("elementData"), cur_target_app=browser_obj.browser_type.value, scroll_into_view=False
         )
         if isinstance(element.rect(), list):
             raise Exception("滑轨元素定位不唯一，请检查！")
@@ -1859,6 +1859,15 @@ class BrowserElement:
                     )
                 ],
             ),
+            atomicMg.param(
+                "is_multiple",
+                dynamics=[
+                    DynamicsItem(
+                        key="$this.is_multiple.show",
+                        expression=f"return $this.child_element_type.value == '{ChildElementType.Xpath.value}' && $this.relative_type.value == '{RelativeType.Child.value}'",
+                    )
+                ],
+            ),
         ],
         outputList=[atomicMg.param("element_obj", types="Any")],
     )
@@ -1872,6 +1881,7 @@ class BrowserElement:
         child_element_index: int = 0,
         sibling_element_type: SiblingElementType = SiblingElementType.All,
         element_timeout: int = 10,
+        is_multiple: bool = False,
     ):
         """
         根据元素对象找到关联元素
@@ -1883,6 +1893,7 @@ class BrowserElement:
         :param child_element_index: 子元素索引
         :param sibling_element_type: 兄弟元素类型（全部、前一个、后一个）
         :param element_timeout: 元素超时时间
+        :param is_multiple: 是否返回所有关联元素
         :return: 关联的元素对象
         """
         element_get_type = ""
@@ -1903,6 +1914,7 @@ class BrowserElement:
                         "index": child_element_index,
                         "xpath": child_element_xpath,
                         "elementGetType": element_get_type,
+                        "multiple": is_multiple,
                     },
                 },
             )

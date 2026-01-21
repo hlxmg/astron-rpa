@@ -12,11 +12,12 @@ import ElementUseFlowList from '@/components/ElementUseFlowList/Index.vue'
 import GlobalModal from '@/components/GlobalModal/index.ts'
 import { PARAMETER_VAR_IN_TYPE } from '@/constants/atom'
 import { useFlowStore } from '@/stores/useFlowStore'
-import { useProcessStore } from '@/stores/useProcessStore.ts'
+import { useProcessStore, isPyModel } from '@/stores/useProcessStore.ts'
 
 import { getChildProcessParameterOption, getMainProcessParameterOption, usageOptions } from './constant.ts'
 import { useConfigParameter } from './useConfigParameter.ts'
 import VarValueEditor from './VarValueEditor.vue'
+import VarInput from './VarInput.vue'
 
 interface LocalConfigParamData extends RPA.ConfigParamData {
   perVarName: string
@@ -47,19 +48,22 @@ const gridOptions: VxeGridProps<RPA.ConfigParamData> = {
   ],
 }
 
-const searchedData = computedWithControl(() => processStore.parameters.length, () => {
-  let list = processStore.parameters
+const searchedData = computedWithControl(
+  () => [processStore.parameters.length, processStore.activeProcessId, searchText.value], 
+  () => {
+    let list = processStore.parameters
 
-  // 根据参数名称查询
-  if (searchText.value) {
-    list = processStore.parameters.filter(item => item.varName.includes(searchText.value))
+    // 根据参数名称查询
+    if (searchText.value) {
+      list = processStore.parameters.filter(item => item.varName.includes(searchText.value))
+    }
+
+    return list.map(item => ({
+      ...item,
+      perVarName: item.varName,
+    }))
   }
-
-  return list.map(item => ({
-    ...item,
-    perVarName: item.varName,
-  }))
-})
+)
 
 const emptyText = computed(() => searchText.value ? '未搜索到配置参数' : undefined)
 
@@ -71,6 +75,9 @@ const varTypeOptions = computed(() => {
 
   return getChildProcessParameterOption()
 })
+
+// 是否是 python 模块
+const isPyProcessModule = computed(() => isPyModel(processStore.activeProcess.resourceCategory))
 
 // 删除事件
 function deleteEvent(row: RPA.ConfigParamData) {
@@ -115,7 +122,7 @@ async function handleBlur(row: LocalConfigParamData) {
   row.perVarName = row.varName
 }
 
-const handleChange = debounce((row: RPA.ConfigParamData) => processStore.updateParameter(row), 300, { leading: true })
+const handleChange = debounce((row: RPA.ConfigParamData) => processStore.updateParameter(row), 500, { leading: true })
 </script>
 
 <template>
@@ -130,7 +137,7 @@ const handleChange = debounce((row: RPA.ConfigParamData) => processStore.updateP
     :empty-text="emptyText"
   >
     <template #name_default="{ row }">
-      <Input v-model:value="row.varName" :bordered="false" class="text-xs text-inherit" @blur="handleBlur(row)" />
+      <VarInput v-model:value="row.varName" class="text-xs" @blur="handleBlur(row)" />
     </template>
     <template #usage_default="{ row }">
       <Select v-model:value="row.varDirection" :options="usageOptions" class="w-full" size="small" :bordered="false" @change="handleChange(row)" />
@@ -143,15 +150,14 @@ const handleChange = debounce((row: RPA.ConfigParamData) => processStore.updateP
         v-model:var-value="row.varValue"
         :var-type="row.varType"
         size="small"
-        @blur="handleChange(row)"
-        @model-change="handleChange(row)"
+        @changed="handleChange(row)"
       />
     </template>
     <template #desc_default="{ row }">
       <Input v-model:value="row.varDescribe" :bordered="false" class="text-xs text-inherit" @blur="handleChange(row)" />
     </template>
     <template #operation_default="{ row }">
-      <Button type="link" size="small" class="!text-xs" @click="findQuoted(row)">
+      <Button v-if="!isPyProcessModule" type="link" size="small" class="!text-xs" @click="findQuoted(row)">
         查找引用
       </Button>
       <Button type="link" size="small" class="!text-xs" @click="deleteEvent(row)">

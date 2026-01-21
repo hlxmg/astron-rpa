@@ -56,6 +56,14 @@ export function setRobotIsExternalCall(data) {
 }
 
 /**
+ * 获取AI工作流列表
+ */
+export async function getWorkflowList() {
+  const res = await http.get('/rpa-openapi/workflows/get-astron')
+  return res.data?.records || []
+}
+
+/**
  * @description: 获取应用名称以英文翻译
  */
 export function getRobotEnglishName(name: string) {
@@ -189,5 +197,13 @@ export async function updateComponent(data: { robotId: string, componentId: stri
  */
 export async function getComponentDetail(data: { robotId: string, componentId: string }) {
   const res = await http.post<RPA.ComponentManageItem>('/robot/component/editing/info', { ...data, mode: 'EDIT_PAGE' })
+  return res.data
+}
+
+/**
+ * 查询编辑页引入的组件详情
+ */
+export async function getEditComponentDetail(data: { robotId: string, componentId: string }) {
+  const res = await http.post('/robot/component-robot-use/edit', { ...data, mode: 'EDIT_PAGE' })
   return res.data
 }

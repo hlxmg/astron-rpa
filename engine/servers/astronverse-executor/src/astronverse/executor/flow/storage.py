@@ -3,6 +3,7 @@ import json
 from abc import ABC, abstractmethod
 from json import JSONDecodeError
 from typing import Any, Optional
+
 import requests
 from astronverse.executor.error import *
 from astronverse.executor.logger import logger
@@ -76,6 +77,11 @@ def merge_dicts(flow, full_flow):
 
 
 class IStorage(ABC):
+    @abstractmethod
+    def project_info(self, project_id: str, mode: str, version: str = "") -> dict:
+        """获取工程的信息"""
+        pass
+
     @abstractmethod
     def process_list(self, project_id: str, mode: str, version: str) -> list:
         """获取工程的流程列表"""
@@ -162,6 +168,23 @@ class HttpStorage(IStorage):
         )
         return res
 
+    def project_info(self, project_id: str, mode: str, version: str = "") -> dict:
+        """获取工程的信息"""
+
+        data = {
+            "robotId": project_id,
+        }
+        if mode:
+            data["mode"] = mode
+        if version:
+            data["robotVersion"] = int(version)
+
+        try:
+            res = self.__http__("/api/robot/robot-icon/info", None, data)
+            return res
+        except Exception as e:
+            return {}
+
     def process_list(self, project_id: str, mode: str, version: str) -> list:
         """获取工程的流程列表"""
 
@@ -190,7 +213,10 @@ class HttpStorage(IStorage):
 
         res = self.__http__("/api/robot/process/process-json", None, data)
         try:
-            flow_list = json.loads(res)
+            if res:
+                flow_list = json.loads(res)
+            else:
+                flow_list = []
         except Exception as e:
             raise BaseException(PROCESS_ACCESS_ERROR_FORMAT.format(process_id), "工程数据异常 {}".format(e))
 

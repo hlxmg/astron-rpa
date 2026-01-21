@@ -19,9 +19,10 @@ export const useUserStore = defineStore('user', () => {
     return currentUserInfo.value
   })
 
-  function getUserInfo() {
+  async function getUserInfo() {
     if (!currentUserInfo.value) {
-      currentUserInfo.value = Auth.getUserInfo()
+      const data = await Auth.userInfo()
+      currentUserInfo.value = data
     }
     return currentUserInfo.value
   }
@@ -54,6 +55,8 @@ export const useUserStore = defineStore('user', () => {
   }
 
   async function switchTenant(tenant: TenantItem) {
+    if (currentTenant.value?.id === tenant.id) return
+
     currentTenant.value = tenant
     usePermissionStore().reset()
     await usePermissionStore().initPermission()

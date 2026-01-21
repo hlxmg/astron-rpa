@@ -29,7 +29,7 @@ from astronverse.actionlib.utils import InspectType
 class AtomicManager:
     """原子能力，运行"""
 
-    _cfg = {"GATEWAY_PORT": "", "WS": None, "PROJECT_JSON": None}
+    _cfg = {"GATEWAY_PORT": "", "WS": None}
 
     def __init__(self):
         self.atomic_dict = {}
@@ -175,9 +175,12 @@ class AtomicManager:
                 for name, value in model_res.items():
                     base_kwargs[name] = value
 
-                # 只有**kwargs的原子能力才接受高级参数
+                # 只有**kwargs的原子能力才接受高级参数,且过滤掉多余的参数,保证兼容
                 if not self.atomic_dict[key].__has_kwargs__:
                     advance_kwargs = {}
+                    sig = inspect.signature(func)
+                    base_kwargs = {k: v for k, v in base_kwargs.items() if k in set(sig.parameters.keys())}
+
                 res = func(*args, **base_kwargs, **advance_kwargs)
                 if res_print and has_result:
                     report.info(
@@ -312,12 +315,11 @@ class AtomicManager:
 
         # 处理输入
         inputList = []
-        __has_kwargs__ = None
+        __has_kwargs__ = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values())
         for k, v in sig.parameters.items():
             if k in ("self", "cls", "args"):
                 continue
-            if k == "kwargs":
-                __has_kwargs__ = True
+            if v.kind == inspect.Parameter.VAR_KEYWORD:
                 continue
             has = False
             if self.atomic_dict[key].inputList:

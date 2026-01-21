@@ -1,15 +1,13 @@
+import ast
 import asyncio
 import datetime
 import json
 import mimetypes
 import os
+import re
 import sys
 from dataclasses import field
 from enum import Enum
-import re
-import ast
-import json
-from typing import Dict
 
 from astronverse.scheduler.apis.response import ResCode, res_msg
 from astronverse.scheduler.core.schduler.venv import create_project_venv, get_project_venv
@@ -267,6 +265,24 @@ def browser_check(options: CheckBrowserPlugin):
     return res_msg(code=ResCode.ERR, msg="检测失败", data=None)
 
 
+@router.post("/browser/plugins/check_running")
+def browser_check_running(plugin_op: BrowserPlugin):
+    """
+    检测浏览器是否运行
+    """
+    try:
+        from astronverse.browser_plugin import BrowserType
+        from astronverse.browser_plugin.browser import ExtensionManager
+
+        browser = BrowserType.init(plugin_op.browser)
+        ex_manager = ExtensionManager(browser_type=browser)
+        running = ex_manager.check_browser_running()
+        return res_msg(msg="", data={"running": running})
+    except Exception as e:
+        logger.exception(e)
+    return res_msg(code=ResCode.ERR, msg="检测失败", data=None)
+
+
 @router.post("/clipboard/get")
 def clipboard_get(is_html: bool):
     """
@@ -376,8 +392,14 @@ def send_tip(tip_data: dict, svc: Svc = Depends(get_svc)):
 
 
 @router.post("/send/alert")
-def send_tip(tip_data: dict, svc: Svc = Depends(get_svc)):
+def send_alert(tip_data: dict, svc: Svc = Depends(get_svc)):
     emit_to_front(EmitType.ALERT, msg=tip_data)
+    return res_msg(code=ResCode.SUCCESS, msg="", data=None)
+
+
+@router.post("/send/sub_window")
+def send_alert(sub_window_data: dict, svc: Svc = Depends(get_svc)):
+    emit_to_front(EmitType.SUB_WINDOW, msg=sub_window_data)
     return res_msg(code=ResCode.SUCCESS, msg="", data=None)
 
 
@@ -605,7 +627,7 @@ def code_to_meta(pycode: PythonCode):
         base_type = type_str.split("[")[0].split(".")[-1]  # 支持泛型如 List[str]
         return type_map.get(base_type.lower(), "Str")
 
-    def build_input_item(param: Dict) -> Dict:
+    def build_input_item(param: dict) -> dict:
         name = param["name"]
         type_hint = param["type_hint"]
         title = param["title"]
@@ -668,7 +690,7 @@ def code_to_meta(pycode: PythonCode):
 
         return item
 
-    def build_output_item(param: Dict) -> Dict:
+    def build_output_item(param: dict) -> dict:
         name = param["name"]
         type_hint = param["type_hint"]
         title = param["title"]

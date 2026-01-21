@@ -11,7 +11,6 @@ from enum import Enum
 import psutil
 from astronverse.scheduler.logger import logger
 
-
 system_encoding = locale.getpreferredencoding()
 
 
@@ -28,6 +27,7 @@ class EmitType(Enum):
     EDIT_SHOW_HIDE = "edit_show_hide"  # 唤起问题
     EXECUTOR_END = "executor_end"  # 执行器结束, 唤起+执行状态，非阻塞
     TERMINAL_STATUS = "terminal_status"  # 终端状态, 非阻塞"
+    SUB_WINDOW = "sub_window"  # 子窗口设置
 
 
 def string_to_base64(input_string):
@@ -105,7 +105,8 @@ def kill_proc_tree(
 
             # 只会杀掉启动当期运行目录下的进程
             proc_cwd = proc.exe()
-            if work_dir not in proc_cwd:
+            logger.debug("当前进程工作目录: {} {}", proc_cwd, work_dir)
+            if "astron-rpa" not in proc_cwd:
                 return
 
             # 尝试杀死父进程

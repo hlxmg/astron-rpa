@@ -9,6 +9,7 @@ import { useFormItemLimitLength, useFormItemRequired, useFormItemSort } from './
 import RenderFormType from './RenderFormType.vue'
 
 const { formItem, size = 'default' } = defineProps<{ formItem: RPA.AtomDisplayItem, size?: 'default' | 'small' }>()
+const emit = defineEmits(['update'])
 
 // const mainColor = getComputedStyle(document.documentElement).getPropertyValue('--headerFontColorHover')
 const iconStyle = { fontSize: '16px', color: 'inherit' }
@@ -67,11 +68,12 @@ const renderList = computed(() => {
         :item-data="formItem"
         :icon-style="iconStyle"
         :var-type="formItem.types"
+        @update="emit('update')"
       />
     </div>
     <div
       v-if="!isEmpty(renderList.extraList)"
-      class="cursor-pointer flex items-center flex-1"
+      class="w-full cursor-pointer flex items-center flex-1"
       :class="[!isEmpty(renderList.editList) ? 'same-container extra-btn justify-center ml-3  text-[rgba(0,0,0,0.85)] dark:text-[rgba(255,255,255,0.85)] bg-[#f3f3f7] dark:bg-[rgba(255,255,255,0.08)]' : '']"
     >
       <RenderFormType
@@ -81,6 +83,7 @@ const renderList = computed(() => {
         :item-data="formItem"
         :icon-style="iconStyle"
         :var-type="formItem.types"
+        @update="emit('update')"
       />
     </div>
   </div>
@@ -94,8 +97,9 @@ const renderList = computed(() => {
 
   .editor-container {
     position: relative;
-    padding: 6px 10px;
-    line-height: 20px;
+    padding: 5px 11px;
+    font-size: 14px;
+    line-height: 22px;
   }
 
   .active-container {
@@ -115,7 +119,7 @@ const renderList = computed(() => {
 
 .form-item-container__small {
   .editor-container {
-    padding: 2px 7px;
+    padding: 1px 7px;
   }
 }
 </style>

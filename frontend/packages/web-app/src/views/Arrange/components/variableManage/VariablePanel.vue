@@ -11,8 +11,8 @@ import { useProcessStore } from '@/stores/useProcessStore'
 import { useVariableStore } from '@/stores/useVariableStore'
 import VarValueEditor from '@/views/Arrange/components/bottomTools/components/ConfigParameter/VarValueEditor.vue'
 import { getFlowVariable } from '@/views/Arrange/utils/generateData'
-
-import { paginationConfig } from '../tools/components/constant'
+import { paginationConfig } from '@/constants'
+import { VariableType } from '@/corobot/type'
 
 const { t } = useTranslation()
 const flowStore = useFlowStore()
@@ -163,8 +163,7 @@ const editableColumn: Array<keyof RPA.GlobalVariable> = ['varName', 'varType', '
             <VarValueEditor
               v-else-if="column.dataIndex === 'varValue'"
               v-model:var-value="editableData.varValue"
-              :var-type="editableData.varType"
-              size="small"
+              :var-type="editableData.varType as VariableType"
             />
             <a-input v-else v-model:value="editableData[column.dataIndex as string]" />
           </template>
@@ -173,7 +172,6 @@ const editableColumn: Array<keyof RPA.GlobalVariable> = ['varName', 'varType', '
               v-if="column.dataIndex === 'varValue'"
               :var-value="record.varValue"
               :var-type="record.varType"
-              size="small"
               :disabled="true"
             />
             <span v-else>{{ generateTableCellText(column, text, record as RPA.GlobalVariable) || "--" }}</span>

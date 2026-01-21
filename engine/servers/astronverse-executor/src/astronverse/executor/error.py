@@ -1,6 +1,7 @@
 import re
 from functools import wraps
-from astronverse.baseline.error.error import ErrorCode, BaseException, BizCode
+
+from astronverse.baseline.error.error import BaseException, BizCode, ErrorCode
 from astronverse.baseline.i18n.i18n import _
 
 BaseException = BaseException
@@ -37,6 +38,8 @@ MSG_VIDEO_PROCESSING_WAIT = _("录屏数据处理中，可能时间较长，请�
 MSG_DOWNLOAD_FORMAT = _("{}动态下载中...")
 MSG_DOWNLOAD_SUCCESS_FORMAT = _("{}下载完成")
 MSG_NO_FFMPEG = _("资源目录不存在ffmpeg，录屏功能无法使用")
+MSG_SUB_WINDOW = _("子窗口启动")
+MSG_GLOBAL_USE_ERROR_TIP = _('全局变量使用方式过时，推荐使用gv["变量名称"]')
 
 
 def python_base_error(func):

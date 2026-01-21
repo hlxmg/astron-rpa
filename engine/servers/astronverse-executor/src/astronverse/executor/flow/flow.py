@@ -1,9 +1,10 @@
 import json
 import os
-from astronverse.executor.error import BaseException, SYNTAX_ERROR_FORMAT, PROCESS_ACCESS_ERROR_FORMAT
+
+from astronverse.executor.error import PROCESS_ACCESS_ERROR_FORMAT, SYNTAX_ERROR_FORMAT, BaseException
+from astronverse.executor.flow.syntax.ast import CodeLine
 from astronverse.executor.flow.syntax.lexer import Lexer
 from astronverse.executor.flow.syntax.parser import Parser
-from astronverse.executor.flow.syntax.ast import CodeLine
 from astronverse.executor.utils.utils import str_to_list_if_possible
 
 
@@ -31,13 +32,12 @@ class Flow:
                 )
 
                 component_path = os.path.join(path, "c{}".format(component_id))
-                self.gen_code(path=component_path, project_id=component_id, project_name="", mode="", version=version)
+                self.gen_code(path=component_path, project_id=component_id, mode="", version=version)
 
     def gen_code(
         self,
         path: str,
         project_id: str,
-        project_name: str,
         mode: str,
         version: str,
         process_id: str = "",
@@ -45,12 +45,20 @@ class Flow:
         end_line=0,
     ):
         os.makedirs(path, exist_ok=True)
+        package = path.rstrip("/").split("/")[-1]
 
         # 1. 获取全局变量
         global_var = self._global_display(project_id, mode, version)
         requirement = self._requirement_display(project_id, mode, version)
+        project_info = self.svc.storage.project_info(project_id=project_id, mode=mode, version=version)
+        if project_info:
+            project_name = project_info.get("name", "机器人")
+            project_icon = project_info.get("iconUrl", "")
+        else:
+            project_name = "机器人"
+            project_icon = ""
         self.svc.add_project_info(
-            project_id, mode, version, project_name, requirement, self.svc.conf.gateway_port, global_var
+            project_id, mode, version, project_name, requirement, self.svc.conf.gateway_port, global_var, project_icon
         )
 
         # 2. 生成流程相关数据
@@ -144,14 +152,15 @@ class Flow:
 
         # 3. 生成project.py
         tpl_path = os.path.join(os.path.dirname(__file__), "tpl", "package.tpl")
-        with open(tpl_path, "r", encoding="utf-8") as tpl_file:
+        with open(tpl_path, encoding="utf-8") as tpl_file:
             tpl_content = tpl_file.read()
 
         global_code = ""
         for k, v in global_var.items():
             global_code += f"gv[{k!r}] = {v}\n"
         tpl_content = tpl_content.replace("{{GLOBAL}}", global_code)
-        package_py_content = tpl_content.replace("{{PACKAGE_PATH}}", repr(os.path.join(path, "package.json")))
+        tpl_content = tpl_content.replace("{{PACKAGE_PATH}}", repr(os.path.join(path, "package.json")))
+        package_py_content = tpl_content.replace("{{PACKAGE}}", package)
         with open(os.path.join(path, "package.py"), "w", encoding="utf-8") as file:
             file.write(package_py_content)
 
@@ -336,7 +345,7 @@ class Flow:
                 continue
             if start_line > 0 and line < start_line:
                 continue
-            if end_line > 0 and line > end_line:  # noqa
+            if end_line > 0 and line > end_line:
                 continue
             v.update(
                 {
