@@ -600,9 +600,9 @@ class ComputerUse:
         ],
     )
     def custom_action_screen(
-            instruction: str,
-            max_steps: int = 20,
-            temperature: float = 0.0,
+        instruction: str,
+        max_steps: int = 20,
+        temperature: float = 0.0,
     ):
         """
         自定义AI操作屏幕
@@ -646,9 +646,9 @@ class ComputerUse:
         ],
     )
     def extract_data(
-            instruction: str,
-            max_steps: int = 1,
-            temperature: float = 0.0,
+        instruction: str,
+        max_steps: int = 1,
+        temperature: float = 0.0,
     ):
         """
         提取屏幕数据
@@ -692,9 +692,9 @@ class ComputerUse:
         ],
     )
     def fill_form(
-            instruction: str,
-            max_steps: int = 20,
-            temperature: float = 0.0,
+        instruction: str,
+        max_steps: int = 20,
+        temperature: float = 0.0,
     ):
         """
         填写表单
@@ -738,9 +738,9 @@ class ComputerUse:
         ],
     )
     def process_captcha(
-            instruction: str,
-            max_steps: int = 20,
-            temperature: float = 0.0,
+        instruction: str,
+        max_steps: int = 20,
+        temperature: float = 0.0,
     ):
         """
         处理验证码

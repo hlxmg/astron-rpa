@@ -13,7 +13,7 @@ from astronverse.actionlib.atomic import atomicMg
 from astronverse.baseline.logger.logger import logger
 
 # 电脑 GUI 任务场景的提示词模板
-COMPUTER_USE_PROMPT = '''You are a GUI agent. You are given a task and your action history, with screenshots. You need to perform the next action to complete the task.  
+COMPUTER_USE_PROMPT = """You are a GUI agent. You are given a task and your action history, with screenshots. You need to perform the next action to complete the task.  
 
 # RPA客户端环境说明  
 
@@ -181,7 +181,7 @@ Analyze context (screenshots and action history), then:
 - 如果无法理解用户的自然语言任务或者无法规划出正确的原子动作(如：无法计算出截图中模板元素的坐标)，不要强行推理下去或者胡乱返回内容，直接返回 "error" 原子动作并说明原因。  
 - 以JSON的格式返回结果，不允许包含注释、任何其他想法或者后续步骤，确保返回结果被包裹在**三个反引号json**之间，并且能够被正确转换为JSON对象。  
 - **禁止** 在"Thought"中包含坐标信息和下一步的 action。  
-'''
+"""
 
 API_URL = "http://127.0.0.1:{}/api/rpa-ai-service/cua/chat".format(
     atomicMg.cfg().get("GATEWAY_PORT") if atomicMg.cfg().get("GATEWAY_PORT") else "13159"
@@ -267,12 +267,7 @@ class CustomActionScreen:
         image_format = Path(screenshot_path).suffix[1:] or "png"
 
         # 构建系统提示词
-        messages = [
-            {
-                "role": "system",
-                "content": COMPUTER_USE_PROMPT
-            }
-        ]
+        messages = [{"role": "system", "content": COMPUTER_USE_PROMPT}]
 
         # 添加历史会话记录，只保留最新的 max_history_rounds 轮
         # 计算需要保留的历史记录数量
@@ -284,48 +279,33 @@ class CustomActionScreen:
             # 如果不是最后一条记录，添加用户消息（包含历史截图）和助手响应
             if i < len(recent_history) - 1 and screenshot_data:
                 screenshot_base64, screenshot_format = screenshot_data
-                messages.append({
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/{screenshot_format};base64,{screenshot_base64}"
-                            }
-                        },
-                        {
-                            "type": "text",
-                            "text": self.instruction
-                        }
-                    ]
-                })
-                messages.append({
-                    "role": "assistant",
-                    "content": assistant_response
-                })
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:image/{screenshot_format};base64,{screenshot_base64}"},
+                            },
+                            {"type": "text", "text": self.instruction},
+                        ],
+                    }
+                )
+                messages.append({"role": "assistant", "content": assistant_response})
             # 如果是最后一条记录，只添加助手响应，避免消息重复
             elif i == len(recent_history) - 1:
-                messages.append({
-                    "role": "assistant",
-                    "content": assistant_response
-                })
+                messages.append({"role": "assistant", "content": assistant_response})
 
         # 添加当前用户消息（包含截图和指令）
-        messages.append({
-            "role": "user",
-            "content": [
-                {
-                    "type": "image_url",
-                    "image_url": {
-                        "url": f"data:image/{image_format};base64,{base64_image}"
-                    }
-                },
-                {
-                    "type": "text",
-                    "text": self.instruction
-                }
-            ]
-        })
+        messages.append(
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image_url", "image_url": {"url": f"data:image/{image_format};base64,{base64_image}"}},
+                    {"type": "text", "text": self.instruction},
+                ],
+            }
+        )
 
         return messages
 
@@ -435,7 +415,7 @@ class CustomActionScreen:
                     time.sleep(0.2)
 
                     pyperclip.copy(value)
-                    pyautogui.hotkey('ctrl', 'v')
+                    pyautogui.hotkey("ctrl", "v")
 
                 elif action_type == "drag":
                     # 处理拖拽动作
@@ -443,7 +423,10 @@ class CustomActionScreen:
                     end_point = param.get("end_point", [0, 0])
 
                     # 确保坐标是整数
-                    start_x, start_y = int(start_point[0] / 1000 * image_width), int(start_point[1] / 1000 * image_height)
+                    start_x, start_y = (
+                        int(start_point[0] / 1000 * image_width),
+                        int(start_point[1] / 1000 * image_height),
+                    )
                     end_x, end_y = int(end_point[0] / 1000 * image_width), int(end_point[1] / 1000 * image_height)
 
                     pyautogui.moveTo(start_x, start_y, duration=0.5)
@@ -469,11 +452,11 @@ class CustomActionScreen:
                         # 提取修饰键
                         modifiers = []
                         if "^" in hotkey_value:
-                            modifiers.append('ctrl')
+                            modifiers.append("ctrl")
                         if "!" in hotkey_value:
-                            modifiers.append('alt')
+                            modifiers.append("alt")
                         if "+" in hotkey_value:
-                            modifiers.append('shift')
+                            modifiers.append("shift")
 
                         if modifiers:
                             # 组合键
@@ -538,6 +521,7 @@ class CustomActionScreen:
         except Exception as e:
             print(f"[错误] 执行动作时出错: {e}")
             import traceback
+
             traceback.print_exc()
             return False, "", e
 
