@@ -39,6 +39,10 @@ function getAppVersion() {
   return getFromElectronInfo<string>('appVersion', 'latest')
 }
 
+const getAppConfig: UtilsManagerType['getAppConfig'] = () => {
+  return ipcRenderer.invoke('get-app-config')
+}
+
 function getAppPath() {
   return getFromElectronInfo<string>('appPath', '')
 }
@@ -70,16 +74,12 @@ function getSystemEnv() {
   })
 }
 
-function invoke(channel: string, ...args: any[]): Promise<any> {
-  return new Promise<any>((resolve, reject) => {
-    ipcRenderer.invoke(channel, ...args).then((res) => {
-      resolve(res)
-    }).catch(err => reject(err))
-  })
+function invoke(channel: string, ...args: any[]) {
+  return ipcRenderer.invoke(channel, ...args)
 }
 
-const readFile: UtilsManagerType['readFile'] = (fileName, dir) => {
-  return ipcRenderer.invoke('read-file', `${dir}/${fileName}`)
+const readFile: UtilsManagerType['readFile'] = (filePath, encoding) => {
+  return ipcRenderer.invoke('read-file', filePath, encoding)
 }
 
 const saveFile: UtilsManagerType['saveFile'] = (fileName, buffer) => {
@@ -98,11 +98,7 @@ function playVideo(videoPath: string) {
 }
 
 function pathJoin(dirArr: Array<string>) {
-  return new Promise((resolve) => {
-    ipcRenderer.invoke('path-join', ...dirArr).then((path) => {
-      resolve(path)
-    })
-  })
+  return ipcRenderer.invoke('path-join', ...dirArr)
 }
 
 function shellopen(path: string) {
@@ -136,60 +132,38 @@ async function openPlugins() {
     userDataPath += '/'
   }
   if (appPath.startsWith('C:') || appPath.startsWith('c:') || appPath.startsWith('/')) {
-    shellopen(`${userDataPath}python_core/Lib/site-packages/rpa_browser_plugin/plugins`)
+    shellopen(`${userDataPath}python_core/Lib/site-packages/astronverse/browser_plugin/plugins`)
   }
   else {
-    shellopen(`${appPath}data/python_core/Lib/site-packages/rpa_browser_plugin/plugins`)
+    shellopen(`${appPath}data/python_core/Lib/site-packages/astronverse/browser_plugin/plugins`)
   }
 }
 
-const showDialog: UtilsManagerType['showDialog'] = (dialogProps) => {
+const showDialog: UtilsManagerType['showDialog'] = async (dialogProps) => {
   const { file_type, filters: dialogFilters, multiple, defaultPath = '' } = dialogProps
-  let isDirectory = false // 默认打开文件
-  let isMultiple = false // 默认单选
-  const dialogObj: DialogObj = { title: '选择文件目录', defaultPath }
-  if (file_type === 'folder')
-    isDirectory = true // 如果是文件夹，则打开文件夹
-  if (file_type === 'files')
-    isMultiple = true
-  if (file_type === 'file')
-    isMultiple = multiple
-  if (dialogFilters && dialogFilters.length > 0) {
-    const filtersType = dialogFilters.map((item: string) => item.replace('.', ''))
-    dialogObj.filters = [{ name: '', extensions: filtersType }]
-  }
-  return new Promise((resolve) => {
-    const fileArr: any[] = []
-    const directoryRes = isDirectory ? 'openDirectory' : 'openFile'
-    fileArr.push(directoryRes)
-    if (isMultiple)
-      fileArr.push('multiSelections')
-    dialogObj.properties = fileArr
-    ipcRenderer.invoke('open-dialog', dialogObj).then((res) => {
-      if (res) {
-        resolve(res)
-      }
-      else {
-        resolve(null)
-      }
-    })
-  })
-}
+  const isDirectory = file_type === 'folder' // 默认打开文件
+  const isMultiple = file_type === 'files' ? true : (file_type === 'file' ? multiple : false) // 默认单选
+  const filterExtensions = dialogFilters?.map((item: string) => item.replace('.', ''))
+  const filters = filterExtensions ? [{ name: '', extensions: filterExtensions }] : []
 
-const getPluginPath: UtilsManagerType['getPluginPath'] = async (_filePath) => {
-  console.log('getPluginPath')
-  return ''
+  const properties: string[] = [
+    isDirectory ? 'openDirectory' : 'openFile',
+    isMultiple ? 'multiSelections' : ''
+  ]
+
+  const dialogObj: DialogObj = { title: '选择文件目录', defaultPath, properties, filters }
+  return await ipcRenderer.invoke('open-dialog', dialogObj)
 }
 
 const getPluginList: UtilsManagerType['getPluginList'] = async () => {
-  console.log('getPluginList')
-  return []
+  return ipcRenderer.invoke('get-plugin-list')
 }
 
 const UtilsManager: UtilsManagerType = {
   getAppEnv,
   getAppPath,
   getAppVersion,
+  getAppConfig,
   getBuildInfo,
   getSystemEnv,
   getUserPath,
@@ -203,7 +177,6 @@ const UtilsManager: UtilsManagerType = {
   playVideo,
   shellopen,
   showDialog,
-  getPluginPath,
   getPluginList,
   getResourcePath,
 }

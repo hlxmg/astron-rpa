@@ -1,16 +1,19 @@
 import { Buffer } from 'node:buffer'
-import fsPromises from 'node:fs/promises'
-import fs from 'node:fs'
+import fs from 'node:fs/promises'
 import { join } from 'node:path'
 
 import { BrowserWindow } from 'electron'
 import { clipboard, dialog, globalShortcut, ipcMain, screen, shell } from 'electron'
 import throttle from 'lodash/throttle'
+import { IPluginConfig } from '@rpa/shared'
+import { to } from 'await-to-js'
 
 import logger from './log'
 import { openPath } from './path'
 import { getMainWindow, getWindowFromLabel } from './window'
 import { checkForUpdates, quitAndInstallUpdates } from './updater'
+import { config } from './config'
+import { loadExtensions } from './extension'
 
 type MainToRender = (channel: string, msg: string, _win?: BrowserWindow, encode?: boolean) => void
 
@@ -189,9 +192,9 @@ export function listenRender() {
     }
   })
 
-  ipcMain.handle('read-file', (_event, filePath) => {
+  ipcMain.handle('read-file', async (_event, filePath, encoding = 'utf-8') => {
     try {
-      return fs.readFileSync(filePath, 'utf-8')
+      return await fs.readFile(filePath, encoding)
     }
     catch (err) {
       logger.error('Failed to read file:', filePath, err)
@@ -209,7 +212,7 @@ export function listenRender() {
       if (canceled || !filePath)
         return false
 
-      await fsPromises.writeFile(filePath, buffer)
+      await fs.writeFile(filePath, buffer)
       return true
     }
     catch (err) {
@@ -276,20 +279,15 @@ export function listenRender() {
     })
   })
 
-  ipcMain.handle('open-dialog', (_event, dialogObj) => {
-    return new Promise((resolve, reject) => {
-      dialog.showOpenDialog(dialogObj).then((result) => {
-        if (result.filePaths.length) {
-          resolve(result.filePaths[0])
-        }
-        else {
-          resolve(null)
-        }
-      }).catch((err) => {
-        logger.error('Error showing open dialog:', err)
-        reject(err)
-      })
-    })
+  ipcMain.handle('open-dialog', async (_event, dialogObj) => {
+    const [err, result] = await to(dialog.showOpenDialog(dialogObj))
+
+    if (err) {
+      logger.error('Error showing open dialog:', err)
+      throw err
+    }
+
+    return result.filePaths
   })
 
   ipcMain.handle('check-for-updates', async () => {
@@ -298,5 +296,13 @@ export function listenRender() {
 
   ipcMain.on('quit-and-install-updates', () => {
     quitAndInstallUpdates()
+  })
+
+  ipcMain.handle('get-app-config', () => {
+    return config
+  })
+
+  ipcMain.handle('get-plugin-list', async (): Promise<IPluginConfig[]> => {
+    return loadExtensions()
   })
 }

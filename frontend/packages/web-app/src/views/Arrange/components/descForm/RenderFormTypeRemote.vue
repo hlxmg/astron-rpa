@@ -33,17 +33,22 @@ function click({ item }) {
 
 const menuItems = computed(() => {
   // itemData.options = sharedData.sharedVariables.map(i => i)
-  return sharedData.sharedVariables.map(i => ({
-    key: i.value,
-    label: i.label,
-  })) ?? []
+  return (
+    sharedData.sharedVariables.map(i => ({
+      key: i.value,
+      label: i.label,
+    })) ?? []
+  )
 })
 
 const itemLabel = computed(() => {
-  return sharedData.sharedVariables.find(i => i.value === itemData.value)?.label || ''
+  const item = sharedData.sharedVariables.find(
+    i => i.value === itemData.value,
+  )
+  return item?.label || ''
 })
 
-function openChange(open) {
+function openChange(open: boolean) {
   if (open) {
     sharedData.getSharedVariables()
   }
@@ -55,7 +60,22 @@ function openChange(open) {
   <a-dropdown :disabled="!canEdit" @open-change="openChange">
     <span>{{ itemLabel }}</span>
     <template #overlay>
-      <a-menu mode="vertical" :items="menuItems" class="overflow-y-auto" @click="(item) => click(item)" />
+      <a-menu
+        mode="vertical"
+        :items="menuItems"
+        class="form-type-select-menu"
+        @click="(item) => click(item)"
+      />
     </template>
   </a-dropdown>
 </template>
+
+<style lang="scss" scoped>
+// 每个菜单项高度约为 32px，5 项共 160px
+.form-type-select-menu {
+  min-width: 130px;
+  max-height: 168px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+</style>

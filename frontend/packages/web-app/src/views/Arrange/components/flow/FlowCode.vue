@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { useTheme } from '@rpa/components'
+import { CodeEditor, useTheme } from '@rpa/components'
 import { storeToRefs } from 'pinia'
-import { defineAsyncComponent, onBeforeMount, onUnmounted } from 'vue'
+import { onBeforeMount, onUnmounted } from 'vue'
 
-import { getRootBaseURL } from '@/api/http/env'
+import { getBaseURL } from '@/api/http/env'
 import { useProcessStore } from '@/stores/useProcessStore'
 
 const props = defineProps<{ resourceId: string }>()
@@ -11,8 +11,7 @@ const processStore = useProcessStore()
 const { isDark } = useTheme()
 const { pyCodeText } = storeToRefs(processStore)
 
-const baseUrl = `${getRootBaseURL()}/scheduler`
-const CodeEditor = defineAsyncComponent(() => import('@rpa/components').then(m => m.CodeEditor))
+const baseUrl = `${getBaseURL()}/scheduler`
 
 function handleUpdate(codeString: string) {
   processStore.setCodeText(codeString)

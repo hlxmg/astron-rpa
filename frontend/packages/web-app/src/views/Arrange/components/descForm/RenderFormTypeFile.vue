@@ -1,12 +1,14 @@
 <script setup lang="ts">
+import { useTranslation } from 'i18next-vue'
 import { computed } from 'vue'
 
 import { replaceMiddle } from '@/utils/common'
 
-import { formBtnHandle } from '@/views/Arrange/components/atomForm/hooks/useRenderFormType'
+import { utilsManager } from '@/platform'
+import { useFlowStore } from '@/stores/useFlowStore'
 import { DEFAULT_DESC_TEXT } from '@/views/Arrange/config/flow'
 
-const { itemData, itemType, desc, id, canEdit } = defineProps({
+const { itemData, desc, canEdit } = defineProps({
   itemType: {
     type: String,
     default: '',
@@ -29,20 +31,28 @@ const { itemData, itemType, desc, id, canEdit } = defineProps({
   },
 })
 
+const { t } = useTranslation()
+const flowStore = useFlowStore()
+
 const isFolder = computed(() => {
   return itemData.formType.params?.file_type === 'folder'
 })
 
 function getFileTxt() {
-  return isFolder.value ? '选择文件夹' : '选择文件'
+  return isFolder.value ? t('common.selectFolder') : t('common.selectFile')
 }
 
 function fileTxt() {
   return desc !== DEFAULT_DESC_TEXT ? desc : getFileTxt()
 }
 
-function clickHandle() {
-  formBtnHandle(itemData, itemType, { id })
+async function clickHandle() {
+  const res = await utilsManager.showDialog(itemData.formType.params)
+  const strVal = res.join(',')
+  if (strVal) {
+    itemData.value = strVal
+    flowStore.setFormItemValue(itemData.key, strVal, flowStore.activeAtom.id)
+  }
 }
 </script>
 

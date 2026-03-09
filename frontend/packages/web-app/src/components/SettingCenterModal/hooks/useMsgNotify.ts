@@ -1,5 +1,6 @@
 import { message } from 'ant-design-vue'
 import type { Rule } from 'ant-design-vue/es/form'
+import { useTranslation } from 'i18next-vue'
 import { isEmpty } from 'lodash-es'
 import { onBeforeUnmount, ref } from 'vue'
 import type { Ref } from 'vue'
@@ -7,9 +8,8 @@ import type { Ref } from 'vue'
 import { toolsInterfacePost } from '@/api/setting'
 import useUserSettingStore from '@/stores/useUserSetting.ts'
 
-export function useNotify() {
-  const emailRef = ref()
-  const initEmailData = {
+function initEmailData(): RPA.EmailFormMap {
+  return {
     is_enable: false, // 是否启用, 默认不启用
     receiver: '', // 收件人
     is_default: true, // 默认不起用其他邮箱
@@ -20,42 +20,51 @@ export function useNotify() {
     use_ssl: true, // 是否SSL
     cc: '', // 抄送
   }
-  const initPhoneData = {
+}
+
+function initPhoneData(): RPA.PhoneFormMap {
+  return {
     is_enable: false, // 是否启用, 默认不启用
     receiver: '', // 收件人手机号
     phone_msg_url: 'https://pretest.xfpaas.com/dripsms/smssafe',
   }
-  const email: Ref<RPA.EmailFormMap> = ref(JSON.parse(JSON.stringify(initEmailData)))
+}
+
+export function useNotify() {
+  const { t } = useTranslation()
+  const emailRef = ref()
+
+  const email: Ref<RPA.EmailFormMap> = ref(initEmailData())
   const emailFormRules: Record<string, Rule[]> = {
     receiver: [
-      { required: true, message: '请输入收件箱地址', trigger: 'blur' },
+      { required: true, message: t('userForm.enterEmail'), trigger: 'blur' },
       {
         pattern: /\w[-\w.+]*@([A-Z0-9][-A-Z0-9]+\.)+[A-Z]{2,14}/i,
-        message: '邮箱地址格式错误',
+        message: t('settingCenter.msgNotify.mailFormatError'),
         trigger: 'blur',
       },
     ],
-    mail_server: [{ required: true, message: '请输入邮箱服务器', trigger: 'blur' }],
-    mail_port: [{ required: true, message: '请输入邮箱端口号', trigger: 'blur' }],
+    mail_server: [{ required: true, message: t('settingCenter.msgNotify.inputMailServer'), trigger: 'blur' }],
+    mail_port: [{ required: true, message: t('settingCenter.msgNotify.inputMailPort'), trigger: 'blur' }],
     sender_mail: [
-      { required: true, message: '请输入发件箱地址！', trigger: 'blur' },
+      { required: true, message: t('settingCenter.msgNotify.inputSenderMail'), trigger: 'blur' },
       {
         pattern: /\w[-\w.+]*@([A-Z0-9][-A-Z0-9]+\.)+[A-Z]{2,14}/i,
-        message: '邮箱地址格式错误！',
+        message: t('settingCenter.msgNotify.mailFormatError'),
         trigger: 'blur',
       },
     ],
-    password: [{ required: true, message: '请输入密钥', trigger: 'blur' }],
+    password: [{ required: true, message: t('settingCenter.msgNotify.inputSenderPassword'), trigger: 'blur' }],
   }
   const phoneRef = ref()
-  const phone_msg: Ref<RPA.PhoneFormMap> = ref(JSON.parse(JSON.stringify(initPhoneData)))
+  const phone_msg: Ref<RPA.PhoneFormMap> = ref(initPhoneData())
   const phoneFormRules: Record<string, Rule[]> = {
     receiver: [
       // /0?(13|14|15|18)[0-9]{9}/
-      { required: true, message: '请输入手机号码', trigger: 'blur' },
+      { required: true, message: t('userForm.enterPhone'), trigger: 'blur' },
       {
         pattern: /^1([3-9])\d{9}$/,
-        message: '手机号码格式错误！',
+        message: t('settingCenter.msgNotify.phoneFormatError'),
         trigger: 'blur',
       },
     ],
@@ -67,9 +76,9 @@ export function useNotify() {
       toolsInterfacePost({
         alert_type: key,
       }).then((res) => {
-        message.success(res.msg || '测试成功')
+        message.success(res.msg || t('settingCenter.msgNotify.testSuccess'))
       })
-      message.info(`${key === 'mail' ? '邮箱' : '短信'}测试已发送，可稍后查看！`)
+      message.info(t('settingCenter.msgNotify.testSent', { type: key === 'mail' ? t('userForm.email') : t('userForm.phone') }))
     })
   }
   function errorSave() {
@@ -77,7 +86,7 @@ export function useNotify() {
     if (email.value.is_enable) {
       newSetting = {
         msgNotifyForm: {
-          email: JSON.parse(JSON.stringify(initEmailData)),
+          email: initEmailData(),
           phone_msg: phone_msg.value,
         },
       }
@@ -86,7 +95,7 @@ export function useNotify() {
       newSetting = {
         msgNotifyForm: {
           email: email.value,
-          phone_msg: JSON.parse(JSON.stringify(initPhoneData)),
+          phone_msg: initPhoneData(),
         },
       }
     }
@@ -105,7 +114,7 @@ export function useNotify() {
         useUserSettingStore().saveUserSetting(newSetting)
         resolve({})
       }).catch(() => {
-        reject(new Error('未通过校验'))
+        reject(new Error(t('common.validationFailed')))
       })
     })
   }

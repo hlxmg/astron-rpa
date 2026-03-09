@@ -1,16 +1,15 @@
-/** @format */
-
 import { message, Table } from 'ant-design-vue'
 import dayjs from 'dayjs'
+import { useTranslation } from 'i18next-vue'
 import { computed, ref } from 'vue'
 
-import { delTaskExecute, getTaskExecuteLst } from '@/api/record'
+import { delTaskExecute } from '@/api/record'
 import { checkVideoPaths } from '@/api/setting'
+import { getTaskExecuteLst } from '@/api/task'
 import useRecordTableColumns from '@/views/Home/components/RecordTable/hooks/useRecordTableColumns.tsx'
 
-import type { resOption } from '../../../types'
-
-export default function useTastRecordOperation(refreshHomeTable?: () => void) {
+export default function useTastRecordOperation(refreshWithDelete?: (count: number) => void) {
+  const { t } = useTranslation()
   const selectedRowKeys = ref<string[]>([])
   const rowSelection = computed(() => {
     return {
@@ -25,12 +24,12 @@ export default function useTastRecordOperation(refreshHomeTable?: () => void) {
   function batchDelete(selected: string[]) {
     const selectedKeys = Array.isArray(selected) ? selected : selectedRowKeys.value
     if (selectedKeys.length === 0) {
-      message.warning('请至少选择一条记录')
+      message.warning(t('selectOne'))
     }
     delTaskExecute({ taskExecuteIdList: selectedKeys }).then((res) => {
-      message.success(res.data || '删除成功')
+      message.success(res.data || t('common.deleteSuccess'))
       selectedRowKeys.value = []
-      refreshHomeTable()
+      refreshWithDelete?.(selectedKeys.length)
     })
   }
 
@@ -42,50 +41,35 @@ export default function useTastRecordOperation(refreshHomeTable?: () => void) {
         endDate: params.timeRange ? `${dayjs(params.timeRange[1]).format('YYYY-MM-DD')} 23:59:59` : '',
       }
       delete paramsObj.timeRange
-      getTaskExecuteLst(paramsObj).then((res: resOption) => {
-        const { data } = res
-        if (data) {
-          const { total, records } = data
-          /**
-           * 检查视频是否本地存在
-           */
-          const videoPaths = Array.from(new Set(records.flatMap(i => (i.robotExecuteRecordList || []).filter(item => item.videoLocalPath).map(item => item.videoLocalPath))))
-          if (videoPaths.length <= 0) {
-            resolve({
-              records,
-              total,
-            })
-          }
-          checkVideoPaths({ videoPaths })
-            .then((result) => {
-              const exist = result?.data?.exist
-              if (exist && exist?.length > 0) {
-                const newRecords = records.map((record) => {
-                  record.robotExecuteRecordList = record.robotExecuteRecordList.map((item) => {
-                    item.videoExist = exist.includes(item.videoLocalPath) ? '0' : '1' // 0存在 1不存在
-                    return item
-                  })
-                  return record
-                })
-                resolve({
-                  records: newRecords,
-                  total,
-                })
-              }
-              else {
-                resolve({
-                  records,
-                  total,
-                })
-              }
-            })
-            .catch(() => {
-              resolve({
-                records,
-                total,
-              })
-            })
+      getTaskExecuteLst(paramsObj).then((data) => {
+        const { total, records } = data
+        /**
+         * 检查视频是否本地存在
+         */
+        const videoPaths = Array.from(new Set(records.flatMap(i => (i.robotExecuteRecordList || []).filter(item => item.videoLocalPath).map(item => item.videoLocalPath))))
+        if (videoPaths.length <= 0) {
+          resolve({ records, total })
         }
+        checkVideoPaths({ videoPaths })
+          .then((result) => {
+            const exist = result?.data?.exist
+            if (exist && exist?.length > 0) {
+              const newRecords = records.map((record) => {
+                record.robotExecuteRecordList = record.robotExecuteRecordList.map((item) => {
+                  item.videoExist = exist.includes(item.videoLocalPath) ? '0' : '1' // 0存在 1不存在
+                  return item
+                })
+                return record
+              })
+              resolve({ records: newRecords, total })
+            }
+            else {
+              resolve({ records, total })
+            }
+          })
+          .catch(() => {
+            resolve({ records, total })
+          })
       })
     })
   }

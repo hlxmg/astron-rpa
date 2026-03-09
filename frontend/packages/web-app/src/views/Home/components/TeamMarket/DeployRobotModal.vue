@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { NiceModal } from '@rpa/components'
+import { useAsyncState } from '@vueuse/core'
 import { Divider, message, Space } from 'ant-design-vue'
+import { useTranslation } from 'i18next-vue'
 import { defineComponent, ref } from 'vue'
 
 import { deployApp, unDeployUserList } from '@/api/market'
-import type { resOption } from '@/views/Home/types'
 
 import type { cardAppItem } from '../../types/market'
 
@@ -13,12 +14,13 @@ import DeployedAccountsTable from './DeployedAccountsTable.vue'
 const props = defineProps<{ record: cardAppItem }>()
 
 const modal = NiceModal.useModal()
+const { t } = useTranslation()
 
 const confirmLoading = ref(false)
 const searchText = ref('')
 const userIds = ref([])
 const isAll = ref(false)
-const accountsOptions = ref([])
+
 const VNodes = defineComponent({
   props: {
     vnodes: {
@@ -31,30 +33,25 @@ const VNodes = defineComponent({
   },
 })
 
-function getMembersByTeam() {
-  unDeployUserList({
-    marketId: props.record.marketId,
-    appId: props.record.appId,
-    phone: searchText.value,
-  }).then((res: resOption) => {
-    const { data } = res
-    if (data) {
-      const ownerList = data.map((i) => {
-        return {
-          name: `${i.realName || '--'}(${i.phone || '--'})`,
-          userId: i.creatorId,
-        }
-      })
-      accountsOptions.value = ownerList
-    }
-  })
-}
-
-getMembersByTeam()
+const { state: accountsOptions, execute: getMembersByTeam } = useAsyncState(
+  () =>
+    unDeployUserList({
+      marketId: props.record.marketId,
+      appId: props.record.appId,
+      phone: searchText.value,
+    }).then((data = []) =>
+      data.map(i => ({
+        name: `${i.realName || '--'}(${i.phone || '--'})`,
+        userId: i.creatorId,
+      })),
+    ),
+  [],
+  { resetOnExecute: false },
+)
 
 async function handleOk() {
   if (userIds.value.length === 0) {
-    message.warning('请选择账号')
+    message.warning(t('common.selectAccount'))
     return
   }
 
@@ -63,14 +60,18 @@ async function handleOk() {
   await deployApp({ marketId, appId, appName, userIdList: userIds.value })
   confirmLoading.value = false
 
-  message.success('部署成功')
+  message.success(t('common.deploySuccess'))
   modal.hide()
 }
 
 function handleChange() {
   userIds.value = []
   if (isAll.value) {
-    userIds.value = accountsOptions.value.filter(i => i.name.toLowerCase().includes(searchText.value.toLowerCase())).map(i => i.userId)
+    userIds.value = accountsOptions.value
+      .filter(i =>
+        i.name.toLowerCase().includes(searchText.value.toLowerCase()),
+      )
+      .map(i => i.userId)
   }
 }
 function handleSelectChange(value: string) {
@@ -88,9 +89,9 @@ function handleSearch(value: string) {
 <template>
   <a-modal
     v-bind="NiceModal.antdModal(modal)"
-    title="部署应用"
+    :title="$t('market.deployApp')"
     :confirm-loading="confirmLoading"
-    ok-text="确认部署"
+    :ok-text="$t('market.confirmDeploy')"
     :width="600"
     centered
     @ok="handleOk"
@@ -99,15 +100,15 @@ function handleSearch(value: string) {
       <DeployedAccountsTable :allow-select="false" :record="props.record" />
       <div class="select-user">
         <div class="title">
-          新增账号
+          {{ $t('market.addAccount') }}
         </div>
         <a-select
           v-model:value="userIds"
-          placeholder="请输入新增账号"
+          :placeholder="$t('market.enterAddAccount')"
           mode="multiple"
           allow-clear
           auto-clear-search-value
-          style="width: 100%;margin-top: 10px;"
+          style="width: 100%; margin-top: 10px"
           show-search
           :field-names="{ label: 'name', value: 'userId' }"
           :filter-option="false"
@@ -121,7 +122,7 @@ function handleSearch(value: string) {
             <Divider style="margin: 4px 0" />
             <Space style="padding: 4px 8px">
               <a-checkbox v-model:checked="isAll" @change="handleChange">
-                全选
+                {{ $t('selectAll') }}
               </a-checkbox>
             </Space>
           </template>

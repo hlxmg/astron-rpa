@@ -4,6 +4,7 @@ import { Tooltip } from 'ant-design-vue'
 import { useTranslation } from 'i18next-vue'
 import { h, reactive, ref, watch } from 'vue'
 
+import type { TableOption } from '@/components/NormalTable'
 import { useUserStore } from '@/stores/useUserStore'
 import type { AnyObj } from '@/types/common'
 import { ROBOT_SOURCE_LOCAL, ROBOT_SOURCE_TEXT } from '@/views/Home/config'
@@ -14,15 +15,23 @@ import OperMenu from '../../../components/OperMenu.vue'
 import useRobotOperation from './useRobotOperation'
 
 export default function useRobotTableOption() {
-  const homeTableRef = ref(null)
-  function refreshHomeTable() {
-    if (homeTableRef.value) {
-      homeTableRef.value?.fetchTableData()
-    }
-  }
-  const { t } = useTranslation()
-  const { getTableData, handleToConfig, openRobotDetailModal, openMcpConfigModal, handleDeleteRobot, handleRobotUpdate, expiredTip } = useRobotOperation(homeTableRef, refreshHomeTable)
   const userStore = useUserStore()
+  const { t } = useTranslation()
+  const homeTableRef = ref(null)
+
+  function refreshHomeTable() {
+    homeTableRef.value?.fetchTableData()
+  }
+
+  function refreshWithDelete(count: number = 1) {
+    homeTableRef.value?.refreshWithDelete(count)
+  }
+
+  const { getTableData, handleToConfig, openRobotDetailModal, openMcpConfigModal, handleDeleteRobot, handleRobotUpdate, expiredTip } = useRobotOperation(
+    homeTableRef,
+    refreshHomeTable,
+    refreshWithDelete,
+  )
 
   const baseOpts = [
     {
@@ -93,7 +102,7 @@ export default function useRobotTableOption() {
       customRender: ({ record }) => (
         <div>
           <span class="inline-flex items-center w-full overflow-hidden">
-            <Tooltip title={`ID：${record.robotId}`}>
+            <Tooltip title={t('common.idWithColon', { id: record.robotId })}>
               <span class="truncate">{record.robotName}</span>
             </Tooltip>
             {record.updateStatus === 1 && <SyncOutlined onClick={() => { handleRobotUpdate(record) }} />}
@@ -145,7 +154,7 @@ export default function useRobotTableOption() {
     },
   ])
 
-  const tableOption = reactive({
+  const tableOption = reactive<TableOption>({
     refresh: false, // 控制表格数据刷新
     getData: getTableData,
     formList: [ // 表格上方的表单配置

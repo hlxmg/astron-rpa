@@ -3,9 +3,10 @@ import { useTranslation } from 'i18next-vue'
 import { baseUrl } from '@/utils/env'
 
 import { WINDOW_NAME } from '@/constants'
-import { windowManager, type CreateWindowOptions } from '@/platform'
+import type { CreateWindowOptions } from '@/platform'
+import { windowManager } from '@/platform'
 
-export function useSmartCompPickWindow() {
+export function useSmartCompPickWindow(closeCallback?: () => void) {
   const { t } = useTranslation()
 
   // 智能组件拾取悬浮窗
@@ -14,23 +15,23 @@ export function useSmartCompPickWindow() {
     // windowManager.createWindow 设置的位置不准确，且创建窗口延迟较高，只能先创建窗口再通过 windowManager.setWindowPosition 调整窗口位置
     const options: CreateWindowOptions = {
       url: `${baseUrl}/smartcompickmenu.html`,
-      title: t('smartComponentPick') || '智能组件拾取',
+      title: t('smartComponentPick'),
       label: WINDOW_NAME.SMART_COMP_PICK_MENU,
       alwaysOnTop: true,
       width: 160,
       height: 40,
-      x: 0,
-      y: 0,
+      x: -999,
+      y: -999,
       resizable: false,
       decorations: false,
       fileDropEnabled: false,
       maximizable: false,
       transparent: true,
-      show: false,
+      show: true,
       skipTaskbar: false,
     }
 
-    await windowManager.createWindow(options)
+    await windowManager.createWindow(options, closeCallback)
   }
 
   const open = () => {

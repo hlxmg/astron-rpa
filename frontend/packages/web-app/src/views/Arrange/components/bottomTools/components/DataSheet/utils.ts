@@ -1,5 +1,4 @@
-import { SheetLocaleType } from '@rpa/components'
-import type { ISheetWorkbookData, IWorksheetData } from '@rpa/components'
+import type { ISheetWorkbookData, IWorksheetData, SheetLocaleType } from '@rpa/components'
 
 const DEFAULT_SHEET_NAME = 'sheet'
 const DEFAULT_EXCEL_NAME = 'datatable.xlsx'
@@ -32,7 +31,7 @@ export function transformToWorkbookData(data: RPA.IDataTableSheet): Partial<IShe
   return {
     appVersion: '',
     id: Date.now().toString(),
-    locale: SheetLocaleType.ZH_CN,
+    locale: 'zhCN' as SheetLocaleType,
     name: DEFAULT_EXCEL_NAME,
     resources: [],
     sheetOrder: [DEFAULT_SHEET_NAME],

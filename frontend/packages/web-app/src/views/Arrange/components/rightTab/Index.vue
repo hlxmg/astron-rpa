@@ -4,6 +4,8 @@ import { onClickOutside } from '@vueuse/core'
 import { message } from 'ant-design-vue'
 import { ref, useTemplateRef } from 'vue'
 
+import i18next from '@/plugins/i18next'
+
 import BUS from '@/utils/eventBus'
 
 import PythonPackageManagement from '@/components/PythonPackageManagement/Index.vue'
@@ -40,7 +42,7 @@ BUS.$on('toggleAtomForm', (visible: boolean) => {
 
 function beforeSelectChange(tab) {
   if (tab === 'node' && !flowStore.activeAtom) {
-    message.warning('请选择一个原子能力')
+    message.warning(i18next.t('arrange.selectAtomFirst'))
     return false
   }
 }
@@ -48,16 +50,16 @@ function beforeSelectChange(tab) {
 
 <template>
   <CustomTabs ref="tabsRef" v-model="activeTab" position="right" :before-select-change="beforeSelectChange" class="custom-tabs dark:text-[rgba(255,255,255,0.65)]]" :class="[colorTheme]" double-click-clear>
-    <CustomTabItem name="节点参数" value="node" size="320">
+    <CustomTabItem :name="$t('nodeParams')" value="node" size="320">
       <AtomForm />
     </CustomTabItem>
-    <CustomTabItem name="流程管理" value="process" size="320">
+    <CustomTabItem :name="$t('processManagement')" value="process" size="320">
       <ProcessManage />
     </CustomTabItem>
-    <CustomTabItem name="变量管理" value="variable" size="620">
+    <CustomTabItem :name="$t('variableManagement')" value="variable" size="620">
       <VariableManage />
     </CustomTabItem>
-    <CustomTabItem name="Python包管理" value="python" size="620">
+    <CustomTabItem :name="$t('pythonPackageManagement')" value="python" size="620">
       <PythonPackageManagement />
     </CustomTabItem>
   </CustomTabs>

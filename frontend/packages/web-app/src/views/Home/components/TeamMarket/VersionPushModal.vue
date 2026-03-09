@@ -1,46 +1,35 @@
 <script setup lang="ts">
 import { NiceModal } from '@rpa/components'
+import { useAsyncState } from '@vueuse/core'
 import { Empty, message, Spin } from 'ant-design-vue'
+import { useTranslation } from 'i18next-vue'
 import { ref } from 'vue'
 
 import { getPushHistoryVersions, pushApp } from '@/api/market'
-import type { resOption } from '@/views/Home/types'
 
 import type { cardAppItem } from '../../types/market'
 
 import DeployedAccountsTable from './DeployedAccountsTable.vue'
 
 const props = defineProps<{ record: cardAppItem }>()
+const { appId, marketId } = props.record
 
 const modal = NiceModal.useModal()
 const confirmLoading = ref(false)
 const selectedVersion = ref('')
-const versionList = ref([])
-const spinning = ref(false)
 const selectedIds = ref([])
+const { t } = useTranslation()
 
-function getVersionData() {
-  const { appId, marketId } = props.record
-  spinning.value = true
-  getPushHistoryVersions({ appId, marketId }).then((res: resOption) => {
-    spinning.value = false
-    const { data } = res
-    versionList.value = data
-  }).finally(() => {
-    spinning.value = false
-  })
-}
-
-getVersionData()
+const { state: versionList, isLoading: spinning } = useAsyncState(() => getPushHistoryVersions({ appId, marketId }), [])
 
 async function handleOk() {
   if (!selectedIds.value.length) {
-    message.warning('请选择要推送的账号')
+    message.warning(t('common.selectAccount'))
     return
   }
 
   if (!selectedVersion.value) {
-    message.warning('请选择要推送的版本')
+    message.warning(t('versionSelect'))
     return
   }
 
@@ -53,7 +42,7 @@ async function handleOk() {
   })
   confirmLoading.value = false
 
-  message.success('版本推送成功')
+  message.success(t('market.versionPushSuccess'))
   modal.hide()
 }
 
@@ -65,9 +54,9 @@ function getSelectedIds(ids: string[]) {
 <template>
   <a-modal
     v-bind="NiceModal.antdModal(modal)"
-    title="版本推送"
+    :title="$t('market.versionPush')"
     :confirm-loading="confirmLoading"
-    ok-text="确认推送"
+    :ok-text="$t('market.confirmPush')"
     :width="600"
     centered
     @ok="handleOk"
@@ -76,7 +65,7 @@ function getSelectedIds(ids: string[]) {
       <DeployedAccountsTable :allow-select="true" :record="props.record" @selected-ids="getSelectedIds" />
       <div class="version-list">
         <div class="title mb-4">
-          版本选择
+          {{ $t('versionSelect') }}
         </div>
         <div v-if="spinning" class="version-spinning">
           <Spin />
@@ -86,7 +75,7 @@ function getSelectedIds(ids: string[]) {
             <a-radio v-for="version in versionList" :key="version.version" class="p-4 border border-primary rounded-lg" :value="version.version">
               <div class="version-item">
                 <div class="version-header">
-                  <div>{{ `版本${version.version}` }}</div>
+                  <div>{{ $t('versionWithNumber', { version: version.version }) }}</div>
                   <div class="ml-[300px]">
                     {{ version.createTime }}
                   </div>

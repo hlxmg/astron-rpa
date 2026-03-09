@@ -24,18 +24,18 @@ English | [简体中文](README.zh.md)
 
 ## 📋 Overview
 
-AstronRPA is an enterprise-grade Robotic Process Automation (RPA) desktop application. Through a visual designer, it supports low-code/no-code development, enabling users to rapidly build workflows and automate desktop softwares and browser pages.
+AstronRPA is an enterprise-grade Robotic Process Automation (RPA) desktop application. Through a visual designer, it supports low-code/no-code development, enabling users to rapidly build workflows and automate desktop software and web pages.
 
 [Astron Agent](https://github.com/iflytek/astron-agent) is the native Agent platform supported by this project. Users can directly call RPA workflow nodes in Astron Agent, and also use Agent workflows in AstronRPA, achieving efficient collaboration between automation processes and intelligent agent systems, empowering broader business automation scenarios.
 
 ### 🎯 Why Choose AstronRPA?
 
-- **🛠️ Comprehensive Automation Support**: Comprehensive coverage of Windows desktop applications and web pages automation. Support for common office software like WPS and Office, financial and ERP systems like Kingdee and YonYou, and various browsers like IE, Edge, and Chrome, enabling end-to-end cross-application automation.
-- **🧩 Highly Component-based**: 300+ pre-built atomic capabilities covering UI operations, data processing, and system interactions. Support for visual orchestration and custom component extensions with high flexibility and maintainability.
+- **🛠️ Comprehensive Automation Support**: Comprehensive coverage of Windows desktop applications and web page automation. Supports common office software like WPS and Office, financial and ERP systems like Kingdee and YonYou, and various browsers like IE, Edge, and Chrome, enabling end-to-end cross-application automation.
+- **🧩 Highly Component-based**: 300+ pre-built atomic capabilities covering UI operations, data processing, and system interactions. Supports visual orchestration and custom component extensions with high flexibility and maintainability.
 - **🏭 Enterprise-grade Security & Collaboration**: Built-in excellence center and team marketplace with enterprise modules. Provides terminal monitoring, scheduling modes, robot team sharing and collaborative functions. Build a complete enterprise automation management ecosystem with process security, permission control, and cross-team collaboration.
-- **👨‍💻 Developer-friendly Experience**: Low-code, visual process design and debugging environment. Quickly build automation workflows through intuitive drag-and-drop methods, reducing development barriers, improving building efficiency, and enabling business users to participate in automation creation.
+- **👨‍💻 Developer-friendly Experience**: Low-code, visual process design and debugging environment. Quickly build automation workflows through intuitive drag-and-drop methods, reducing development barriers, improving development efficiency, and enabling business users to participate in automation creation.
 - **🤖 Native Agent Empowerment**: Deep integration with Astron Agent platform supporting bi-directional calls between automation processes and AI agents with capability fusion. Achieve seamless connection between task reasoning, decision making, and automated execution, expanding automation boundaries.
-- **🌐 Multi-channel Trigger Integration**: Support for direct execution, scheduled tasks, scheduling modes, API calls, and MCP services. Flexible integration capabilities to quickly respond to third-party system integration needs and easily embed in complex business scenarios.
+- **🌐 Multi-channel Trigger Integration**: Supports direct execution, scheduled tasks, scheduling modes, API calls, and MCP services. Flexible integration capabilities to quickly respond to third-party system integration needs and easily embed in complex business scenarios.
 
 ## 🚀 Quick Start
 
@@ -43,7 +43,7 @@ AstronRPA is an enterprise-grade Robotic Process Automation (RPA) desktop applic
 - 💻 **Client Operating System**: Windows 10/11 (primary support)
 - 🧠 **RAM** >= 8 GiB
 
-### **Server**: Using Docker
+### **Server**: Deploy with Docker
 
 Recommended for quick deployment:
 
@@ -68,9 +68,11 @@ docker compose up -d
 docker compose ps
 ```
 
-- After all services have started, open your browser and go to: `http://{YOUR_SERVER_IP}:32742/api/robot/user/login-check` (32742 is the default port; change it if you modified the configuration).
-- If you see `{"code":"900001","data":null,"message":"unauthorized"}` , it means the deployment is correct and the connection is working properly.
-- For production deployment and security hardening, refer to [Deployment Guide](docker/QUICK_START.md)
+- After all services have started, open your browser and go to: `http://{YOUR_SERVER_IP}:32742/api/rpa-auth/user/login-check` (32742 is the default port; change it if you modified the configuration).
+- If you see `{"code":"900001","data":null,"message":"unauthorized"}`, it means the deployment is correct and the connection is working properly.
+- Open your browser and go to: `http://{YOUR_SERVER_IP}:8000` (8000 is the default port; change it if you modified the configuration).
+- If you see the Casdoor login page, it means Casdoor is deployed correctly.
+- For production deployment and security hardening, refer to the [Deployment Guide](./docker/QUICK_START.md).
 
 ### **Client**: Source Deployment/Binary Deployment
 
@@ -85,7 +87,7 @@ docker compose ps
 | **7-Zip** | - | Create deployment archives |
 | **SWIG** | - | Connect Python with C/C++ |
 
-For specific installation instructions and common issues, refer to [Build Guide](./BUILD_GUIDE.md)
+For specific installation instructions and common issues, refer to [Build Guide](./BUILD_GUIDE.md).
 
 #### Direct Download (Recommended)
 
@@ -121,7 +123,7 @@ Download the latest [Release Package](https://github.com/iflytek/astron-rpa/rele
    5. ✅ Build frontend web application
    6. ✅ Build desktop application
 
-3. 📦 Install the packaged client installation package
+3. 📦 Install the packaged client
 
 #### ⚙️ After installation, modify the server address in `resources/conf.yaml` in the installation directory:
 

@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { Icon } from '@rpa/components'
+import { Icon, useTheme } from '@rpa/components'
 import StarterKit from '@tiptap/starter-kit'
 import { EditorContent, useEditor } from '@tiptap/vue-3'
+import { useTranslation } from 'i18next-vue'
 import { computed, h, nextTick, ref, watch } from 'vue'
-
-import { useTheme } from '@rpa/components'
 
 import type { DocNode } from '../../types'
 
@@ -25,6 +24,7 @@ const emit = defineEmits<{
 const model = defineModel('value')
 const editorContentRef = ref<InstanceType<typeof EditorContent>>()
 const { colorTheme } = useTheme()
+const { t } = useTranslation()
 
 function isValidDocNode(text: string): boolean {
   try {
@@ -162,9 +162,9 @@ const hasIncompleteElementNode = computed(() => {
 
 const submitTooltip = computed(() => {
   if (hasIncompleteElementNode.value) {
-    return '请先完成元素拾取'
+    return t('smartComponent.completePickFirst')
   }
-  return '发送'
+  return t('smartComponent.send')
 })
 
 const isSubmitDisabled = computed(() => {
@@ -249,7 +249,7 @@ defineExpose({
           :icon="h(Icon, { name: 'bottom-menu-ele-manage', size: '16' })"
           @click="createElementNode"
         >
-          元素拾取
+          {{ t('smartComponent.elementPick') }}
         </a-button>
         <a-button
           class="flex items-center gap-1 px-2 rounded-lg"
@@ -259,7 +259,7 @@ defineExpose({
           :disabled="optimizeLoading || disabled || isEmpty"
           @click="handleOptimizeQuestion"
         >
-          优化提问
+          {{ t('smartComponent.optimizeQuestion') }}
         </a-button>
       </section>
 

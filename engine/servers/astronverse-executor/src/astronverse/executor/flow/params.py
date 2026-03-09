@@ -1,3 +1,5 @@
+import ast
+import astor
 import json
 from enum import Enum
 from typing import Any
@@ -22,6 +24,30 @@ class ParamType(Enum):
 param_type_dict = ParamType.to_dict()
 
 
+class GlobalVarRewriter(ast.NodeTransformer):
+    """
+    把白名单里的变量名全部改成 gv["原名"]
+    """
+
+    def __init__(self, glist):
+        self.glist = set(glist)
+
+    def visit_Name(self, node: ast.Name):
+        if node.id in self.glist:
+            new_node = ast.Subscript(
+                value=ast.Name(id="gv", ctx=ast.Load()), slice=ast.Constant(value=node.id), ctx=node.ctx
+            )
+            return ast.copy_location(new_node, node)
+        return node
+
+
+def refactor_globals(code: str, glist) -> str:
+    tree = ast.parse(code)
+    tree = GlobalVarRewriter(glist).visit(tree)
+    ast.fix_missing_locations(tree)
+    return astor.to_source(tree).rstrip("\n")
+
+
 class Param(IParam):
     def __init__(self, svc):
         self.svc = svc
@@ -32,6 +58,7 @@ class Param(IParam):
         预处理参数
         1. 预处理data优先
         2. 过筛前端无效数据
+        3. 如果数组只有一个且type是python且value为""的时候，把value设置为None
         """
 
         ls = []
@@ -44,6 +71,7 @@ class Param(IParam):
         ):
             # 预处理1: 处理data优先
             # 预处理2: 过略前端无效数据
+            # 预处理3: 如果数组只有一个且type是python且value为""的时候，把value设置为None
             for v in param_value:
                 if "data" not in v:
                     v["data"] = v.get("value", "")
@@ -52,6 +80,8 @@ class Param(IParam):
                     ls.append(v)
             if len(ls) == 0:
                 ls.append(param_value[0])
+            if len(ls) == 1 and ls[0].get("type") == ParamType.PYTHON.value and ls[0].get("data") == "":
+                ls[0]["data"] = None
         else:
             ls = [{"type": ParamType.OTHER.value, "data": param_value}]
         return ls
@@ -80,18 +110,13 @@ class Param(IParam):
             if need_eval:
                 if types in [ParamType.STR.value, ParamType.OTHER.value]:
                     pieces.append(f"{data!r}")
-                elif types == ParamType.G_VAR.value:
-                    pieces.append(f"gv[{data!r}]")
                 else:
-                    if gv and data in gv:  # 兜底
-                        pieces.append(f"gv[{data!r}]")
-                    else:
-                        pieces.append(f"{data}")
+                    if gv:
+                        # 兼容gv
+                        data = refactor_globals(data, gv.keys())
+                    pieces.append(f"{data}")
             else:
-                if gv and data in gv:  # 兜底
-                    pieces.append(f"gv[{data!r}]")
-                else:
-                    pieces.append(data)
+                pieces.append(f"{data}")
 
         if len(pieces) == 1:
             return pieces[0], need_eval
@@ -188,8 +213,9 @@ class Param(IParam):
 
                 project_id = self.svc.ast_curr_info.get("__project_id__")
                 gv = self.svc.ast_globals_dict[project_id].project_info.global_var
-                if gv and value in gv:  # 兜底
-                    value = f"gv[{value!r}]"
+                if gv:
+                    # 兼容gv
+                    value = refactor_globals(value, gv.keys())
 
                 # 2. 解析
                 res.append(OutputParam(value=value))

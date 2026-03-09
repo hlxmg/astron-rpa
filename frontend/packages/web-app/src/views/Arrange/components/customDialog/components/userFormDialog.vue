@@ -1,23 +1,22 @@
 <script setup lang="ts">
 import { HintIcon } from '@rpa/components'
-import { Form, Empty } from 'ant-design-vue'
+import { Empty, Form } from 'ant-design-vue'
 import { isEmpty } from 'lodash-es'
 
 import type { AnyObj } from '@/types/common'
 import type { DialogOption } from '@/views/Arrange/components/customDialog/types'
 
-import createUserFormItem from '../hooks/createUserFormItem'
+import { createUserFormItem } from '../hooks/createUserFormItem'
 import useUserFormDialog from '../hooks/useUserFormDialog'
 
-const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
-
 const props = defineProps<{ option: DialogOption, draggable?: boolean }>()
+
 const emit = defineEmits<{
   (e: 'close'): void
   (e: 'save', data: AnyObj): void
 }>()
 
-const { createItemFn } = createUserFormItem()
+const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE
 
 const close = () => emit('close')
 const save = (data: AnyObj) => emit('save', data)
@@ -53,10 +52,10 @@ const {
             :name="formItem.bind"
             :rules="[
               ...(formItem?.rules || []),
-              ...(formItem?.required ? [{ required: true, message: `${formItem.label}不能为空` }] : []),
+              ...(formItem?.required ? [{ required: true, message: $t('common.notEmpty', { name: formItem.label }) }] : []),
             ]"
           >
-            <component :is="createItemFn[formItem.dialogFormType](formItem, formState)" />
+            <component :is="createUserFormItem[formItem.dialogFormType](formItem, formState)" />
           </Form.Item>
         </template>
         <a-empty v-else :image="simpleImage" />

@@ -1,5 +1,12 @@
 import type { IPluginConfig } from './plugin'
 
+export interface IAppConfig {
+  remote_addr: string
+  skip_engine_start?: boolean
+  app_auth_type: 'uap' | 'casdoor'
+  app_edition: 'saas' | 'enterprise'
+}
+
 // 窗口管理相关类型
 export interface WindowManager {
   platform: string
@@ -86,25 +93,25 @@ export type AppEnv = 'tauri' | 'electron' | 'browser'
 
 // 工具管理器
 export interface UtilsManager {
-  getAppEnv: () => AppEnv
   isBrowser?: boolean
+  getAppEnv: () => AppEnv
   openInBrowser: (url: string, browser?: string) => void
   listenEvent: (eventName: string, callback: (data: any) => void) => void
   getAppVersion: () => Promise<string>
   getAppPath: () => Promise<string>
+  getAppConfig: () => Promise<IAppConfig>
   getUserPath: () => Promise<string>
   getBuildInfo: () => Promise<string>
   getSystemEnv: () => Promise<string>
   getResourcePath: () => Promise<string>
   invoke: (channel: string, ...args: any[]) => Promise<any>
-  readFile: (fileName: string, dir?: string) => Promise<any>
+  readFile: (filePath: string, encoding?: string) => Promise<string | Uint8Array | ArrayBuffer>
   saveFile: (fileName: string, buffer: ArrayBuffer | string) => Promise<boolean>
   playVideo: (videoPath: string) => void
-  pathJoin: (dirArr: Array<string>) => Promise<any>
+  pathJoin: (dirArr: Array<string>) => Promise<string>
   shellopen: (path: string) => Promise<void>
   openPlugins: () => Promise<void>
-  showDialog: (dialogProps: any) => Promise<any>
-  getPluginPath: (filePath: string) => Promise<string>
+  showDialog: (dialogProps: any) => Promise<string[]>
   getPluginList: () => Promise<IPluginConfig[]>
 }
 

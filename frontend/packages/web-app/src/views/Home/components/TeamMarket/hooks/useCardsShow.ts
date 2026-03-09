@@ -9,7 +9,6 @@ import { useAppConfigStore } from '@/stores/useAppConfig'
 import { useUserStore } from '@/stores/useUserStore'
 import { useCommonOperate } from '@/views/Home/pages/hooks/useCommonOperate.tsx'
 
-import type { resOption } from '../../../types'
 import type { cardAppItem } from '../../../types/market'
 import { DeployRobotModal, MarketAchieveModal, VersionPushModal } from '../index'
 
@@ -43,15 +42,15 @@ export function useCardsShow(emits) {
     emits('updateCheckNum', data)
   }
 
-  function handleDeleteApp(item) {
-    console.log(item)
+  async function handleDeleteApp(item) {
     const { appId, marketId } = item
-    handleDeleteConfirm(`将要下架：${item.appName}, 下架后将无法恢复，是否仍要下架？`, () => {
-      deleteApp({ appId, marketId }).then(() => {
-        message.success('下架成功')
-        emits('refreshHomeTable')
-      })
-    })
+    const confirm = await handleDeleteConfirm(t('market.unpublishConfirm', { name: item.appName }))
+    if (!confirm) {
+      return
+    }
+    await deleteApp({ appId, marketId })
+    message.success(t('common.operationSuccess'))
+    emits('refreshHomeTable')
   }
 
   async function handleAppAchieve(e: Event, item) {
@@ -72,40 +71,42 @@ export function useCardsShow(emits) {
       return
     // 红色密级和黄色密级但不是可使用部门的人员,需发起使用申请
     if (needApplication) {
-      useApplicationConfirm(`当前权限不足，需发起申请批准后方可使用该应用，是否发起使用申请？`, () => {
+      useApplicationConfirm(t('market.insufficientPermissionNeedApplyConfirm'), () => {
         useApplication({ appId, marketId }).then(() => {
-          message.success('申请已发送')
+          message.success(t('market.applicationSent'))
         }).catch((e) => {
-          message.error(e?.message || '申请发送失败')
+          message.error(e?.message || t('market.applicationSendFail'))
         })
       })
       return
     }
 
-    getPushHistoryVersions(item).then((res: resOption) => {
-      const { data } = res
-      NiceModal.show(MarketAchieveModal, {
-        record: item,
-        versionLst: data,
-        onRefresh: () => emits('refreshHomeTable'),
-        onLimit: () => {
-          consultRef.value?.init({
-            authType: appInfo.value.appAuthType,
-            trigger: 'modal',
-            modalConfirm: {
-              title: '已达到应用数量上限',
-              content: userStore.currentTenant?.tenantType === 'personal' ? `个人版最多支持创建19个应用，您已满额。` : `专业版最多支持创建99个应用，您已满额。`,
-              okText: userStore.currentTenant?.tenantType === 'personal' ? '升级至专业版' : '升级至企业版',
-              cancelText: '我知道了',
-            },
-            consult: {
-              consultTitle: '咨询',
-              consultEdition: userStore.currentTenant?.tenantType === 'personal' ? 'professional' : 'enterprise',
-              consultType: 'consult',
-            },
-          })
-        },
-      })
+    const data = await getPushHistoryVersions(item)
+    NiceModal.show(MarketAchieveModal, {
+      record: item,
+      versionLst: data,
+      onRefresh: () => emits('refreshHomeTable'),
+      onLimit: () => {
+        consultRef.value?.init({
+          authType: appInfo.value.appAuthType,
+          trigger: 'modal',
+          modalConfirm: {
+            title: t('designerManage.limitReachedTitle'),
+            content: userStore.currentTenant?.tenantType === 'personal'
+              ? t('designerManage.personalLimitReachedContent')
+              : t('designerManage.proLimitReachedContent'),
+            okText: userStore.currentTenant?.tenantType === 'personal'
+              ? t('designerManage.upgradeToPro')
+              : t('designerManage.upgradeToEnterprise'),
+            cancelText: t('designerManage.gotIt'),
+          },
+          consult: {
+            consultTitle: t('designerManage.consult'),
+            consultEdition: userStore.currentTenant?.tenantType === 'personal' ? 'professional' : 'enterprise',
+            consultType: 'consult',
+          },
+        })
+      },
     })
   }
 

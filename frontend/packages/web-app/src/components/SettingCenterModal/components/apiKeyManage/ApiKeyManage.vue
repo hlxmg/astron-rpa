@@ -2,15 +2,15 @@
 import { DeleteOutlined } from '@ant-design/icons-vue'
 import { NiceModal } from '@rpa/components'
 import { message } from 'ant-design-vue'
-import type { ColumnsType } from 'ant-design-vue/es/table/interface'
+import type { ColumnsType } from 'ant-design-vue/es/table'
 import dayjs from 'dayjs'
 import { useTranslation } from 'i18next-vue'
 import { h, reactive, ref } from 'vue'
 
 import { deleteAPI, getApis } from '@/api/setting'
-import GlobalModal from '@/components/GlobalModal/index.ts'
-import NormalTable from '@/components/NormalTable/index.vue'
-import type { TableOption } from '@/types/normalTable'
+import GlobalModal from '@/components/GlobalModal'
+import { NormalTable } from '@/components/NormalTable'
+import type { TableOption } from '@/components/NormalTable'
 
 import { NewApiModal } from './modals'
 
@@ -59,9 +59,9 @@ const columns: ColumnsType = [
   },
 ]
 
-const tableOption = reactive({
+const tableOption = reactive<TableOption>({
   refresh: true,
-  getData: getTableData,
+  getData: getApis,
   buttonListAlign: 'right',
   headerClass: '!justify-end',
   buttonList: [{
@@ -77,21 +77,14 @@ const tableOption = reactive({
     size: 'small',
   },
   params: {},
-} as TableOption)
-
-function getTableData(params) {
-  return new Promise((resolve) => {
-    getApis(params).then(({ data }) => {
-      if (data) {
-        const { total, records } = data
-        resolve({ records, total })
-      }
-    })
-  })
-}
+})
 
 function refreshHomeTable() {
   currTableRef.value?.fetchTableData()
+}
+
+function refreshWithDelete(count: number = 1) {
+  currTableRef.value?.refreshWithDelete(count)
 }
 
 function addApiKey() {
@@ -103,11 +96,10 @@ function addApiKey() {
 function deleteApiKey(row: DataType) {
   GlobalModal.confirm({
     title: t('settingCenter.apiKeyManage.deleteApiKeyConfirm'),
-    onOk: () => {
-      deleteAPI({ id: row.id }).then(() => {
-        message.success(t('deleteSuccess'))
-        refreshHomeTable()
-      })
+    onOk: async () => {
+      await deleteAPI({ id: row.id })
+      message.success(t('deleteSuccess'))
+      refreshWithDelete()
     },
     centered: true,
     keyboard: false,

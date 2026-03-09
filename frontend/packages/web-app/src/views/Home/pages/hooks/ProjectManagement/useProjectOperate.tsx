@@ -3,7 +3,7 @@ import { Button, message, Tooltip } from 'ant-design-vue'
 import { useTranslation } from 'i18next-vue'
 import { storeToRefs } from 'pinia'
 import type { Ref } from 'vue'
-import { computed, h, ref } from 'vue'
+import { h, ref } from 'vue'
 
 import $loading from '@/utils/globalLoading'
 
@@ -23,16 +23,15 @@ import OperMenu from '@/views/Home/components/OperMenu.vue'
 import { ShareRobotModal } from '@/views/Home/components/ShareRobotModal'
 import StatusCircle from '@/views/Home/components/StatusCircle.vue'
 import { PENDING } from '@/views/Home/components/TeamMarket/config/market'
-import type { resOption } from '@/views/Home/types'
 
 import { handleRun, useCommonOperate } from '../useCommonOperate'
 
-export function useProjectOperate(homeTableRef?: Ref, consultRef?: Ref) {
-  function refreshHomeTable() {
-    if (homeTableRef.value) {
-      homeTableRef.value?.fetchTableData()
-    }
-  }
+export function useProjectOperate(
+  homeTableRef: Ref,
+  consultRef: Ref,
+  refreshHomeTable: () => void,
+  refreshWithDelete: (count?: number) => void,
+) {
   const { t } = useTranslation()
   const appStore = useAppConfigStore()
   const userStore = useUserStore()
@@ -51,7 +50,7 @@ export function useProjectOperate(homeTableRef?: Ref, consultRef?: Ref) {
       resizable: true,
       customRender: ({ record }) => (
         <div class="flex items-center gap-2 overflow-hidden w-full">
-          <Tooltip title={`ID：${record.robotId}`}>
+          <Tooltip title={t('common.idWithColon', { id: record.robotId })}>
             <span class="truncate flex-1">{ record.robotName }</span>
           </Tooltip>
           {currHoverId.value === record.robotId && (
@@ -177,7 +176,7 @@ export function useProjectOperate(homeTableRef?: Ref, consultRef?: Ref) {
   function handleEdit(editObj: AnyObj) {
     const { robotId, robotName, version, editEnable } = editObj
     if (!editEnable) {
-      message.info('当前应用未开放源码，无法进行编辑，升级账户后可获得编辑权限')
+      message.info(t('common.sourceNotOpenEditDisabled'))
       return
     }
     useRoutePush({ name: ARRANGE, query: { projectId: robotId, projectName: robotName, projectVersion: version } })
@@ -192,13 +191,19 @@ export function useProjectOperate(homeTableRef?: Ref, consultRef?: Ref) {
           authType: appInfo.value.appAuthType,
           trigger: 'modal',
           modalConfirm: {
-            title: '已达到应用数量上限',
-            content: userStore.currentTenant?.tenantType === 'personal' ? `个人版最多支持创建19个应用，您已满额。` : `专业版最多支持创建99个应用，您已满额。`,
-            okText: userStore.currentTenant?.tenantType === 'personal' ? '升级至专业版' : '升级至企业版',
-            cancelText: '我知道了',
+            title: t('designerManage.limitReachedTitle'),
+            content: userStore.currentTenant?.tenantType === 'personal'
+              ? t('designerManage.personalLimitReachedContent')
+              : t('designerManage.proLimitReachedContent'),
+            okText: userStore.currentTenant?.tenantType === 'personal'
+              ? t('designerManage.upgradeToPro')
+              : t('designerManage.upgradeToEnterprise'),
+            cancelText: t('designerManage.gotIt'),
           },
           consult: {
-            consultTitle: userStore.currentTenant?.tenantType === 'personal' ? '专业版咨询' : '企业版咨询',
+            consultTitle: userStore.currentTenant?.tenantType === 'personal'
+              ? t('designerManage.consultProTitle')
+              : t('designerManage.consultEnterpriseTitle'),
             consultEdition: userStore.currentTenant?.tenantType === 'personal' ? 'professional' : 'enterprise',
             consultType: 'consult',
           },
@@ -238,15 +243,14 @@ export function useProjectOperate(homeTableRef?: Ref, consultRef?: Ref) {
   // 分享
   function shareToMarket(editObj: AnyObj) {
     if (editObj.publishStatus === ROBOT_EDITING) {
-      message.info('应用编辑中暂不支持分享')
+      message.info(t('market.notSupportShareWhileEditing'))
       return
     }
-    $loading.open({ msg: '加载中...' })
-    getTeams().then((res: resOption) => {
+    $loading.open({ msg: t('loading') })
+    getTeams().then((data) => {
       $loading.close()
-      const { data } = res
       if (!(data && data.length > 0)) {
-        message.warning('暂无团队，请先创建或加入团队')
+        message.warning(t('market.noTeamJoinTip'))
         return
       }
 
@@ -275,29 +279,28 @@ export function useProjectOperate(homeTableRef?: Ref, consultRef?: Ref) {
   }
 
   // 删除
-  function handleDeleteProject(editObj: AnyObj) {
+  async function handleDeleteProject(editObj: AnyObj) {
     const { robotId } = editObj
-    isInTask({ robotId }).then((result: resOption) => {
-      const { data } = result
-      if (data) {
-        let { situation, taskReferInfoList, robotId } = data
+    const data = await isInTask({ robotId })
+    if (data) {
+      let { situation, taskReferInfoList, robotId } = data
 
-        // 过滤掉taskReferInfoList 中taskName 相同的项
-        taskReferInfoList = taskReferInfoList?.filter((item, index, self) =>
-          index === self.findIndex(t => t.taskName === item.taskName),
-        )
-        handleDeleteConfirm(getSituationContent('design', situation, taskReferInfoList), () => {
-          delectProject({
-            robotId,
-            situation,
-            taskIds: taskReferInfoList?.map(item => item.taskId).join(',') || '',
-          }).then(() => {
-            message.success(t('common.deleteSuccess'))
-            refreshHomeTable()
-          })
-        })
+      // 过滤掉taskReferInfoList 中taskName 相同的项
+      taskReferInfoList = taskReferInfoList?.filter((item, index, self) =>
+        index === self.findIndex(t => t.taskName === item.taskName),
+      )
+      const confirm = await handleDeleteConfirm(getSituationContent('design', situation, taskReferInfoList))
+      if (!confirm) {
+        return
       }
-    })
+      await delectProject({
+        robotId,
+        situation,
+        taskIds: taskReferInfoList?.map(item => item.taskId).join(',') || '',
+      })
+      message.success(t('common.deleteSuccess'))
+      refreshWithDelete()
+    }
   }
 
   return {

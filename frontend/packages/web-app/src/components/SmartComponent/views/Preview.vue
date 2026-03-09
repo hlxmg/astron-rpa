@@ -1,11 +1,14 @@
 <script lang="ts" setup>
+import { CodeEditor } from '@rpa/components'
+import { useDark } from '@vueuse/core'
 import { message } from 'ant-design-vue'
+import { useTranslation } from 'i18next-vue'
 import { throttle } from 'lodash-es'
-import { computed, defineAsyncComponent, provide, ref, watch } from 'vue'
+import { computed, provide, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { codeToMeta } from '@/api/component'
-import { getRootBaseURL } from '@/api/http/env'
+import { getBaseURL } from '@/api/http/env'
 import { useFlowStore } from '@/stores/useFlowStore'
 import { useProcessStore } from '@/stores/useProcessStore'
 import { useRunlogStore } from '@/stores/useRunlogStore'
@@ -16,7 +19,6 @@ import AtomForm from '../components/AtomForm.vue'
 import { modeOptions } from '../config/constants'
 import { usePackageCheck, useSmartComp } from '../hooks'
 import { generateComponentForm } from '../utils'
-import { useDark } from '@vueuse/core'
 
 const isDark = useDark()
 const processStore = useProcessStore()
@@ -25,6 +27,7 @@ const smartComp = useSmartComp()
 const runningStore = useRunningStore()
 const runlogStore = useRunlogStore()
 const route = useRoute()
+const { t } = useTranslation()
 
 // 依赖检查（使用共享的上下文）
 const {
@@ -41,8 +44,7 @@ const newIndex = computed(() => {
 provide('smartCompNewIndex', newIndex)
 
 const mode = ref<('visual' | 'code')>('visual') // 可视化/代码模式
-const baseUrl = `${getRootBaseURL()}/scheduler`
-const CodeEditor = defineAsyncComponent(() => import('@rpa/components').then(m => m.CodeEditor))
+const baseUrl = `${getBaseURL()}/scheduler`
 
 const previousCode = ref('')
 const currentCode = ref('')
@@ -71,14 +73,14 @@ const buttonConfig = computed(() => {
   if (runningStore.running === 'run' || runningStore.running === 'debug') {
     return {
       icon: 'tools-stop',
-      text: '停止',
+      text: t('stop'),
       clickHandler: handleStop,
     }
   }
   else {
     return {
       icon: 'tools-run',
-      text: '运行',
+      text: t('run'),
       clickHandler: handleRun,
     }
   }
@@ -143,11 +145,11 @@ const handleSave = throttle(async () => {
     previousCode.value = code
 
     runlogStore.clearLogs()
-    message.success('保存成功')
+    message.success(t('smartComponent.saveSuccess'))
   }
   catch (error) {
-    console.error('保存失败:', error)
-    message.error('保存失败')
+    console.error(t('smartComponent.saveFailed'), error)
+    message.error(t('smartComponent.saveFailed'))
   }
 }, 1500, { leading: true, trailing: false })
 
@@ -162,7 +164,7 @@ const handleReset = throttle(() => {
     <div class="flex justify-between px-4 py-[10px]">
       <a-segmented v-model:value="mode" :options="modeOptions as any">
         <template #label="{ payload }">
-          <rpa-hint-icon :name="payload.icon" :title="payload.title" class="relative top-[2px]" />
+          <rpa-hint-icon :name="payload.icon" :title="$t(payload.title)" class="relative top-[2px]" />
         </template>
       </a-segmented>
       <div class="flex items-center gap-2">
@@ -173,7 +175,7 @@ const handleReset = throttle(() => {
             @click="handleReset"
           >
             <template #suffix>
-              <span class="ml-1">重置</span>
+              <span class="ml-1">{{ $t('smartComponent.reset') }}</span>
             </template>
           </rpa-hint-icon>
           <rpa-hint-icon
@@ -182,7 +184,7 @@ const handleReset = throttle(() => {
             @click="handleSave"
           >
             <template #suffix>
-              <span class="ml-1">保存</span>
+              <span class="ml-1">{{ $t('smartComponent.save') }}</span>
             </template>
           </rpa-hint-icon>
         </template>

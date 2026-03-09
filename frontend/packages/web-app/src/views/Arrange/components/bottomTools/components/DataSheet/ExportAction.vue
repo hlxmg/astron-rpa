@@ -1,7 +1,7 @@
 <script lang="ts" setup>
-import { sheetUtils } from '@rpa/components'
 import { message } from 'ant-design-vue'
 import { to } from 'await-to-js'
+import { useTranslation } from 'i18next-vue'
 import { isString } from 'lodash-es'
 
 import { utilsManager } from '@/platform'
@@ -9,6 +9,7 @@ import { utilsManager } from '@/platform'
 import { useDataSheetStore } from './useDataSheet'
 
 const { sheetRef, isReady } = useDataSheetStore()
+const { t } = useTranslation()
 
 async function handleExport(type: 'csv' | 'excel') {
   const data = sheetRef.value?.getWorkbookData()
@@ -19,11 +20,11 @@ async function handleExport(type: 'csv' | 'excel') {
   const saveFileName = type === 'csv' ? 'data.csv' : 'data.xlsx'
 
   if (type === 'excel') {
-    saveContent = await sheetUtils.exportToExcelFile(data)
+    saveContent = await sheetRef.value.utils.exportToExcelFile(data)
   }
 
   if (type === 'csv') {
-    const csvContent = await sheetUtils.exportToCsvFile(data)
+    const csvContent = await sheetRef.value.utils.exportToCsvFile(data)
     const content = isString(csvContent) ? csvContent : Object.values(csvContent).join('\n')
     // 提取纯CSV内容（去掉data:text/csv;charset=utf-8,前缀）
     saveContent = content.replace('data:text/csv;charset=utf-8,', '')
@@ -32,8 +33,9 @@ async function handleExport(type: 'csv' | 'excel') {
   const [error, saved] = await to<boolean, string>(utilsManager.saveFile(saveFileName, saveContent))
   if (error) {
     message.error(error)
-  } else if (saved) {
-    message.success('导出成功')
+  }
+  else if (saved) {
+    message.success(t('common.operationSuccess'))
   }
 }
 </script>
@@ -42,17 +44,17 @@ async function handleExport(type: 'csv' | 'excel') {
   <a-dropdown :disabled="!isReady">
     <rpa-hint-icon name="move-folder" enable-hover-bg>
       <template #suffix>
-        <span class="ml-1 text-xs">导出</span>
+        <span class="ml-1 text-xs">{{ $t('common.export') }}</span>
       </template>
     </rpa-hint-icon>
 
     <template #overlay>
       <a-menu>
         <a-menu-item @click="handleExport('csv')">
-          导出CSV
+          {{ $t('sheet.exportCSV') }}
         </a-menu-item>
         <a-menu-item @click="handleExport('excel')">
-          导出Excel
+          {{ $t('sheet.exportExcel') }}
         </a-menu-item>
       </a-menu>
     </template>

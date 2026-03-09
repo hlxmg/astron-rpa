@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Auth } from '@rpa/components/auth'
 import { theme } from 'ant-design-vue'
+import { to } from 'await-to-js'
 import { storeToRefs } from 'pinia'
 import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 
@@ -8,7 +9,7 @@ import { base64ToString } from '@/utils/common'
 import BUS from '@/utils/eventBus'
 import { storage } from '@/utils/storage'
 
-import { expiredModal, getBaseURL } from '@/api/http/env'
+import { expiredModal, getAPIBaseURL } from '@/api/http/env'
 import BootHeader from '@/components/Boot/Header.vue'
 import LaunchCarousel from '@/components/Boot/LaunchCarousel.vue'
 import ConfigProvider from '@/components/ConfigProvider/index.vue'
@@ -33,9 +34,7 @@ function launchProgressCallback(msg: { step: number }) {
 }
 
 utilsManager.listenEvent('scheduler-event', (eventMsg) => {
-  console.log('message: ', eventMsg)
-  const msgString = base64ToString(eventMsg)
-  const msgObject = JSON.parse(msgString)
+  const msgObject = JSON.parse(base64ToString(eventMsg))
   const { type, msg } = msgObject
   console.log('主进程消息: ', msgObject)
   switch (type) {
@@ -82,9 +81,12 @@ onMounted(() => {
   loginWindowStep()
 })
 
-window.onload = () => {
+window.onload = async () => {
   loginAuto()
-  utilsManager.invoke('main_window_onload').catch(() => {})
+  const [err] = await to(utilsManager.invoke('main_window_onload'))
+  if (err) {
+    console.error('main_window_onload 调用失败: ', err)
+  }
 }
 
 onUnmounted(() => {
@@ -116,7 +118,7 @@ onUnmounted(() => {
           </LaunchCarousel>
         </div>
       </template>
-      <Auth.LoginForm v-if="isLogin" ref="loginFormRef" :base-url="getBaseURL()" :auto-login="autoLogin" :auth-type="appInfo.appAuthType" :edition="appInfo.appEdition" @finish="loginSuccess" />
+      <Auth.LoginForm v-if="isLogin" ref="loginFormRef" :base-url="getAPIBaseURL()" :auto-login="autoLogin" :auth-type="appInfo.appAuthType" :edition="appInfo.appEdition" @finish="loginSuccess" />
     </Auth.PageLayout>
     <Loading />
   </ConfigProvider>

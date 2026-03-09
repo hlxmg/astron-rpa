@@ -1,5 +1,6 @@
 import { NiceModal } from '@rpa/components'
 import { Empty, Table } from 'ant-design-vue'
+import { useTranslation } from 'i18next-vue'
 import { isEmpty } from 'lodash-es'
 import { defineComponent, ref } from 'vue'
 
@@ -27,6 +28,7 @@ const _RobotConfigTaskModal = defineComponent({
   },
   emits: ['ok'],
   setup(props, { emit }) {
+    const { t } = useTranslation()
     const modal = NiceModal.useModal()
     const processStore = useProcessStore()
 
@@ -66,23 +68,23 @@ const _RobotConfigTaskModal = defineComponent({
 
     const columns = [
       {
-        title: '参数名称',
+        title: t('parameter.paramName'),
         dataIndex: 'varName',
         key: 'varName',
-        ellipse: true,
+        ellipsis: true,
       },
       {
-        title: '参数类型',
+        title: t('parameter.paramType'),
         dataIndex: 'varType',
         key: 'varType',
-        ellipse: true,
+        ellipsis: true,
         customRender: ({ record }) => {
           const typeSchema = processStore.globalVarTypeList[record.varType]
           return <span>{typeSchema?.desc}</span>
         },
       },
       {
-        title: '参数值',
+        title: t('parameter.paramValue'),
         dataIndex: 'varValue',
         key: 'varValue',
         width: 200,
@@ -91,10 +93,10 @@ const _RobotConfigTaskModal = defineComponent({
         },
       },
       {
-        title: '参数描述',
+        title: t('parameter.paramDesc'),
         dataIndex: 'varDescribe',
         key: 'varDescribe',
-        ellipse: true,
+        ellipsis: true,
       },
     ]
 
@@ -104,7 +106,7 @@ const _RobotConfigTaskModal = defineComponent({
       <GlobalModal
         {...NiceModal.antdModal(modal)}
         width={600}
-        title="参数配置"
+        title={t('parameter.parameterConfig')}
         onOk={handleOk}
       >
         <Table

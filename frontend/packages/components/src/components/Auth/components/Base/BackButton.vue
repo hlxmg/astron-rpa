@@ -7,7 +7,7 @@ interface Props {
   text?: string
 }
 
-const { text = '返回' } = defineProps<Props>()
+const { text } = defineProps<Props>()
 
 const emit = defineEmits<{
   click: []
@@ -20,7 +20,7 @@ function handleClick() {
 
 <template>
   <Button
-    class="!m-0 !mb-[8px] !p-0 h-auto cursor-pointer text-[#000000D9] dark:text-[#FFFFFFD9]"
+    class="back-btn !m-0 !mb-[8px] !p-0 h-auto cursor-pointer text-left text-[#000000D9] dark:text-[#FFFFFFD9]"
     type="link"
     @click="handleClick"
   >
@@ -28,6 +28,6 @@ function handleClick() {
       class="inline-block mr-[8px] text-[16px] h-[10px]"
       name="back"
     />
-    <span class="text-[#000000D9] dark:text-[#FFFFFFD9]">{{ text }}</span>
+    <span class="text-[#000000D9] dark:text-[#FFFFFFD9]">{{ text || $t('goBack') }}</span>
   </Button>
 </template>

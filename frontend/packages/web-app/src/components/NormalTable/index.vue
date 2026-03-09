@@ -1,8 +1,10 @@
 <script lang="tsx">
 import { useElementSize } from '@vueuse/core'
 import { Empty, Pagination, Table } from 'ant-design-vue'
+import { to } from 'await-to-js'
 import { useTranslation } from 'i18next-vue'
-import { isEmpty } from 'lodash-es'
+import { isBoolean, isEmpty } from 'lodash-es'
+import type { SlotsType } from 'vue'
 import { computed, onMounted, reactive, ref, useTemplateRef } from 'vue'
 
 import type { TableOption } from '@/types/normalTable'
@@ -51,6 +53,7 @@ export default {
       },
     },
   },
+  slots: Object as SlotsType<{ default: any, headerPrefix: any }>,
   setup(props, { expose, slots }) {
     const { t } = useTranslation()
     /**
@@ -66,11 +69,11 @@ export default {
     const { option } = reactive({ ...props })
     const { renderHeaderForm, renderHeaderButton } = useTable()
     const localOption = computed(() => option)
-    const pageData = ref(option?.pageParams || { pageNoName: 'pageNo', pageSizeName: 'pageSize' })
+    const pageNoName = computed(() => option?.pageParams?.pageNoName || 'pageNo')
+    const pageSizeName = computed(() => option?.pageParams?.pageSizeName || 'pageSize')
     const pageOption = ref({ // 分页配置
       total: 0,
       current: 1,
-      pageNum: 1,
       pageSize: Number((PAGE_SIZE_OPTIONS)[0]),
       pageSizeOptions: PAGE_SIZE_OPTIONS,
       size: 'small' as const,
@@ -79,7 +82,7 @@ export default {
       ...(option?.pageConfig || {}),
     })
     const orderData = ref(option?.orderParams || { orderName: 'sortBy', orderStatus: 'sortType' }) // 排序字段
-    const immediate = ref(option?.immediate === false ? option.immediate : true) // 是否立即执行
+    const immediate = isBoolean(option?.immediate) ? option.immediate : true // 是否立即执行
     const isPage = ref(option?.page === false ? option.page : true) // 是否开启分页，默认分页
     const loading = ref(false) // 开启loading
     const tableData = ref([]) // 表格数据
@@ -89,8 +92,7 @@ export default {
       searchFn: () => {
         if (isPage.value) {
           pageOption.value.current = Number(DEFAULT_PAGE)
-          pageOption.value.pageNum = Number(DEFAULT_PAGE)
-          localOption.value.params[pageData.value.pageNoName] = Number(DEFAULT_PAGE)
+          localOption.value.params[pageNoName.value] = Number(DEFAULT_PAGE)
         }
         fetchTableData()
       },
@@ -107,37 +109,31 @@ export default {
       })) || []
     })
 
-    function fetchTableData() {
-      loading.value = true
+    async function fetchTableData() {
       if (isPage.value) {
-        localOption.value.params[pageData.value.pageSizeName] = pageOption.value.pageSize
-        localOption.value.params[pageData.value.pageNoName] = pageOption.value.pageNum
+        localOption.value.params[pageSizeName.value] = pageOption.value.pageSize
+        localOption.value.params[pageNoName.value] = pageOption.value.current
       }
-      localOption.value
-        .getData({ ...localOption.value.params })
-        .then((res) => {
-          tableData.value = res.records
-          pageOption.value.total = res.total
-        })
-        .catch(() => {
-          tableData.value = []
-          pageOption.value.total = 0
-        })
-        .finally(() => {
-          loading.value = false
-        })
+
+      loading.value = true
+      const [error, data] = await to(localOption.value.getData(localOption.value.params))
+      tableData.value = error ? [] : data.records
+      pageOption.value.total = error ? 0 : data.total
+      loading.value = false
     }
+
     function onPageChange(page: number) {
-      pageOption.value.pageNum = page
       pageOption.value.current = page
 
       fetchTableData()
     }
+
     function onShowSizeChange(_, size) {
       pageOption.value.pageSize = size
     }
+
     // 分页、排序、筛选
-    function tableChange(pagination, filters, sorter) {
+    function tableChange(_pagination, _filters, sorter) {
       const { field, order } = sorter // sorter有可能为空
       const ORDER_OPTION = {
         ascend: 'asc',
@@ -148,6 +144,7 @@ export default {
 
       fetchTableData()
     }
+
     function renderTable() { // 默认支持table
       const page = pageOption.value.current
       const pageSize = pageOption.value.pageSize
@@ -177,6 +174,7 @@ export default {
         />
       )
     }
+
     function renderPagination() {
       return (
         <div class="nTable-pagination flex items-center justify-between">
@@ -192,68 +190,88 @@ export default {
       )
     }
 
+    function renderHeader() {
+      const hasForm = !isEmpty(option.formList)
+      const hasBtns = !isEmpty(option.buttonList)
+
+      if (!hasBtns && !hasForm) {
+        return null
+      }
+
+      const header = (className?: string) => (
+        <div
+          class={[
+            className,
+            'nTable-header',
+            { 'flex-row-reverse': option.formListAlign === 'right' || option.buttonListAlign === 'left' },
+            option.headerClass,
+          ]}
+        >
+          {/* 左侧form */}
+          {hasForm && renderHeaderForm(formOption)}
+          {/* 右侧button */}
+          {hasBtns && renderHeaderButton(buttonOption)}
+        </div>
+      )
+
+      if (!slots.headerPrefix) {
+        return header()
+      }
+
+      return (
+        <div class="flex items-center">
+          {slots.headerPrefix?.()}
+          {header('flex-1')}
+        </div>
+      )
+    }
+
+    const refreshWithDelete = (count: number = 1) => {
+      // 如果是删除查询，需要将总数减 count，并且修正 pageNum
+      const newTotal = pageOption.value.total - count
+      const oldPageNum = pageOption.value.current
+      const newTotalPages = Math.ceil(newTotal / pageOption.value.pageSize)
+
+      if (oldPageNum > newTotalPages) {
+        pageOption.value.current = Math.max(1, newTotalPages)
+      }
+
+      fetchTableData()
+    }
+
     onMounted(() => {
-      if (immediate.value && option.params) {
+      if (immediate && option.params) {
         fetchTableData()
       }
     })
 
     expose({
       tableData,
-      fetchTableData,
       localOption,
+      fetchTableData,
+      refreshWithDelete,
     })
 
-    return () => {
-      const hasForm = !isEmpty(option.formList)
-      const hasBtns = !isEmpty(option.buttonList)
-
-      return (
-        <div class="wrapper h-full">
-          <div class="nTable h-full flex flex-col gap-4">
-            {/* 头部 */}
-            {
-              (hasBtns || hasForm) && (
-                <div
-                  class={[
-                    'nTable-header',
-                    { 'flex-row-reverse': option.formListAlign === 'right' || option.buttonListAlign === 'left' },
-                    option.headerClass,
-                  ]}
-                >
-                  {/* 左侧form */}
-                  {hasForm && renderHeaderForm(formOption)}
-                  {/* 右侧button */}
-                  {hasBtns && renderHeaderButton(buttonOption)}
-                </div>
-              )
-            }
-            {/* 主体 */}
-            <div class="flex-1 relative" ref="table">
-              {slots.default?.({ loading: loading.value, tableData: tableData.value, height: tableSize.height.value }) || renderTable()}
-            </div>
-            {/* 底部 */}
-            {isPage.value && renderPagination()}
+    return () => (
+      <div class="wrapper h-full">
+        <div class="nTable h-full flex flex-col gap-4">
+          {/* 头部 */}
+          {renderHeader()}
+          {/* 主体 */}
+          <div class="flex-1 relative" ref="table">
+            {slots.default?.({ loading: loading.value, tableData: tableData.value, height: tableSize.height.value }) || renderTable()}
           </div>
+          {/* 底部 */}
+          {isPage.value && renderPagination()}
         </div>
-      )
-    }
+      </div>
+    )
   },
 }
 </script>
 
 <style lang="scss" scoped>
 @import './index.scss';
-
-// .custom-table :deep(.ant-table-body) {
-//   /* 隐藏滚动条但保留滚动功能 */
-//   scrollbar-width: none; /* Firefox */
-//   -ms-overflow-style: none; /* IE and Edge */
-
-//   &::-webkit-scrollbar {
-//     display: none; /* Chrome, Safari and Opera */
-//   }
-// }
 
 :deep(.ant-table-row-level-1) {
   background-color: var(--color-fill-secondary);

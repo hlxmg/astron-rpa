@@ -1,63 +1,64 @@
-/** @format */
+import i18next from '@/plugins/i18next'
+
 import type { BatchDataTableMenu } from '@/types/databatch.d'
 
 export const Menus: BatchDataTableMenu[] = [
   {
     key: 'editColumnName',
-    label: '编辑列名',
+    label: i18next.t('dataBatch.editColumnName'),
     // showType: 'similar',
   },
   {
     key: 'copyColumn',
-    label: '复制列',
+    label: i18next.t('dataBatch.copyColumn'),
     showType: 'similar',
   },
   {
     key: 'insertColumnLeft',
-    label: '向左侧插入列',
+    label: i18next.t('dataBatch.insertColumnLeft'),
     showType: 'similar',
   },
   {
     key: 'insertColumnRight',
-    label: '向右侧插入列',
+    label: i18next.t('dataBatch.insertColumnRight'),
     showType: 'similar',
   },
   {
     key: 'similarAdd',
-    label: '补充相似数据',
+    label: i18next.t('dataBatch.similarAdd'),
     showType: 'similar',
   },
   {
     key: 'editColumnElement',
-    label: '编辑列元素',
+    label: i18next.t('dataBatch.editColumnElement'),
     showType: 'similar',
   },
   {
     key: 'toggleColumnData',
-    label: '切换列数据类型',
+    label: i18next.t('dataBatch.toggleColumnData'),
     showType: 'similar',
     children: [
       {
         key: 'text',
-        label: '元素文本',
+        label: i18next.t('dataBatch.text'),
       },
       {
         key: 'href',
-        label: '元素链接',
+        label: i18next.t('dataBatch.href'),
       },
       {
         key: 'src',
-        label: '图片地址',
+        label: i18next.t('dataBatch.src'),
       },
     ],
   },
   {
     key: 'colDataProcessConfig',
-    label: '列数据处理',
+    label: i18next.t('dataBatch.colDataProcessConfig'),
     children: [
       {
         key: 'ExtractNum',
-        label: '提取数字',
+        label: i18next.t('dataBatch.ExtractNum'),
         checkable: true,
         checked: false,
         modal: false,
@@ -65,7 +66,7 @@ export const Menus: BatchDataTableMenu[] = [
       },
       {
         key: 'Trim',
-        label: '去除首尾空格',
+        label: i18next.t('dataBatch.Trim'),
         checkable: true,
         checked: false,
         modal: false,
@@ -73,7 +74,7 @@ export const Menus: BatchDataTableMenu[] = [
       },
       {
         key: 'Replace',
-        label: '字符替换',
+        label: i18next.t('dataBatch.Replace'),
         checkable: true,
         checked: false,
         modal: true,
@@ -81,7 +82,7 @@ export const Menus: BatchDataTableMenu[] = [
       },
       {
         key: 'Prefix',
-        label: '添加前缀',
+        label: i18next.t('dataBatch.Prefix'),
         checkable: true,
         checked: false,
         modal: true,
@@ -89,7 +90,7 @@ export const Menus: BatchDataTableMenu[] = [
       },
       {
         key: 'Suffix',
-        label: '添加后缀',
+        label: i18next.t('dataBatch.Suffix'),
         checkable: true,
         checked: false,
         modal: true,
@@ -97,7 +98,7 @@ export const Menus: BatchDataTableMenu[] = [
       },
       {
         key: 'FormatTime',
-        label: '时间格式化',
+        label: i18next.t('dataBatch.FormatTime'),
         checkable: true,
         checked: false,
         modal: true,
@@ -105,7 +106,7 @@ export const Menus: BatchDataTableMenu[] = [
       },
       {
         key: 'Regular',
-        label: '正则表达式',
+        label: i18next.t('dataBatch.Regular'),
         checkable: true,
         checked: false,
         modal: true,
@@ -113,24 +114,24 @@ export const Menus: BatchDataTableMenu[] = [
       },
       {
         key: 'clear',
-        label: '清除所有条件',
+        label: i18next.t('dataBatch.clear'),
       },
     ],
     active: false,
   },
   {
     key: 'colFilterConfig',
-    label: '列筛选',
+    label: i18next.t('dataBatch.colFilterConfig'),
     active: false,
   },
   {
     key: 'filterConfig',
-    label: '表格筛选',
+    label: i18next.t('dataBatch.filterConfig'),
     active: false,
   },
   {
     key: 'deleteColumn',
-    label: '删除列',
+    label: i18next.t('dataBatch.deleteColumn'),
     showType: 'similar',
   },
 ]
@@ -339,11 +340,3 @@ export const dateSelectList = [
   { label: '%j （数字代表一年中第几天）', value: '%j', key: 'day_of_year' },
   { label: '%W （数字代表一年中第几周）', value: '%W', key: 'week_of_year' },
 ]
-
-const obj = {}
-function aaa(data) {
-  data.forEach((item) => {
-    obj[item.key] = item.label
-  })
-}
-aaa(dateSelectList)

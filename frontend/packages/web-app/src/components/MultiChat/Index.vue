@@ -1,26 +1,37 @@
 <script setup lang="ts">
 import { CloseOutlined, LoadingOutlined, RightOutlined, SaveOutlined, StopOutlined, ZoomInOutlined } from '@ant-design/icons-vue'
+import { useTheme } from '@rpa/components'
+import { useAsyncState, useToggle } from '@vueuse/core'
 import { message } from 'ant-design-vue'
-import { nanoid } from 'nanoid'
-import PDF from 'pdf-vue3'
-import { computed, h, nextTick, onBeforeUnmount, ref } from 'vue'
-import { useAsyncState } from '@vueuse/core'
+import { to } from 'await-to-js'
+import { useTranslation } from 'i18next-vue'
 import { get } from 'lodash-es'
+import { nanoid } from 'nanoid'
+import { computed, h, nextTick, onBeforeUnmount, ref } from 'vue'
 
-import { WINDOW_NAME } from '@/constants'
-import { getBaseURL } from '@/api/http/env'
+import { getAPIBaseURL } from '@/api/http/env'
 import { sseRequest } from '@/api/sse'
+import { WINDOW_NAME } from '@/constants'
 import { utilsManager, windowManager } from '@/platform'
 import type { chatItem } from '@/types/chat'
 
-import { type FileInfo, initFileInfo, FILE_TYPE_IMG } from './utils'
+import ChatBgDarkSvg from './assets/chat-bg-dark.svg?component'
+import ChatBgLightSvg from './assets/chat-bg-light.svg?component'
+import Preview from './Preview.vue'
+import { FILE_TYPE_IMG, initFileInfo } from './utils'
+import type { FileInfo } from './utils'
 
 let controller: AbortController | null = null
 // 初始化信息
 const targetInfo = new URL(location.href).searchParams
 // 文件路径
-const filePath = targetInfo.get('file_path')
-const title = filePath ? '知识问答' : (targetInfo.get('title') || 'AI Chat组件')
+const filePath = targetInfo.get('file_path') || ''
+const fileName = filePath.split(/[/\\]/).pop() || ''
+const fileSuffix = fileName.split('.').pop()?.toLowerCase() || ''
+const initFileInfoData = initFileInfo({ path: filePath, name: fileName, suffix: fileSuffix })
+
+const { t } = useTranslation()
+const title = filePath ? t('multiChat.knowledgeQaTitle') : (targetInfo.get('title') || t('multiChat.defaultTitle'))
 // 是否显示保存按钮
 const showSave = ['1', 1].includes(targetInfo.get('is_save'))
 // 最大轮数
@@ -33,6 +44,9 @@ const replyBaseData = JSON.parse(targetInfo.get('reply') || '{}') ?? {}
 // 交互类型 multi:多轮对话,file:知识问答
 const chatType = filePath ? 'file' : 'multi'
 
+const { isDark } = useTheme()
+
+const ChatBgSvg = computed(() => isDark.value ? ChatBgDarkSvg : ChatBgLightSvg)
 const isMultiTurnLimit = computed(() => chatDataList.value.length >= limitTurns) // 是否置灰输入框
 
 const prompt = ref('')
@@ -41,23 +55,26 @@ const chatDataList = ref([]) // 回答信息
 const messagingId = ref('') // 当前消息ID
 const isSave = ref(false) // 是否在保存过程中
 const saveQAIds = ref([]) // 保存的promptIds
-const showPreview = ref(false) // 是否显示预览弹窗，默认不显示
+const [showPreview, togglePreview] = useToggle(false) // 是否显示预览弹窗，默认不显示
 
 // 文件信息
-const { state: fileInfo } = useAsyncState<FileInfo | null>(async () => {
-  if (!filePath) return initFileInfo()
-  const fileName = filePath.split(/[/\\]/).pop() || '';
-  const fileSuffix = fileName.split('.').pop()?.toLowerCase() || '';
-  const fileContent = await utilsManager.readFile(filePath);
-  const filePreviewContent = fileSuffix === 'txt' ? new TextDecoder().decode(fileContent) : fileContent;
+const { state: fileInfo } = useAsyncState<FileInfo>(async () => {
+  if (!filePath)
+    return initFileInfoData
+  const [err, _fileContent] = await to(utilsManager.readFile(filePath, null))
+  const fileContent = err ? '' : _fileContent
+  const filePreviewContent = fileSuffix === 'txt' && fileContent instanceof Uint8Array
+    ? new TextDecoder().decode(fileContent)
+    : fileContent
+
   return {
-    path: filePath,
-    name: fileName,
-    suffix: fileSuffix,
-    content: fileContent,
+    ...initFileInfoData,
+    content: fileContent as string,
     previewContent: filePreviewContent,
   }
-}, initFileInfo())
+}, initFileInfoData)
+
+const couldPreview = computed(() => !['doc', 'docx'].includes(fileInfo.value.suffix))
 
 function updateMessagingChat(key: string, data: string | number) {
   chatDataList.value.forEach((item: chatItem) => {
@@ -96,18 +113,22 @@ function handleSave() {
     return
   }
   if (!saveQAIds.value?.length) {
-    message.warning('请选择要保存的对话')
+    message.warning(t('multiChat.selectChatsToSave'))
     return
   }
 
   const filterArr = chatDataList.value.filter(item => saveQAIds.value.includes(item.id))
+  replyToMain(JSON.stringify(filterArr))
+  windowManager.closeWindow()
+}
+
+function replyToMain(data: string) {
   windowManager.emitTo({
     from: WINDOW_NAME.MULTICHAT,
     target: WINDOW_NAME.MAIN,
     type: 'chatContentSave',
-    data: { ...replyBaseData, data: JSON.stringify(filterArr) },
+    data: { ...replyBaseData, data },
   })
-  handleClose()
 }
 
 function handleScrollToBottom() {
@@ -120,7 +141,7 @@ function handleScrollToBottom() {
 
 function handleEnd() {
   updateMessagingChat('timestamp', Date.now())
-  isThinking.value && updateMessagingChat('answer', '已取消')
+  isThinking.value && updateMessagingChat('answer', t('canceled'))
   isThinking.value = false
   messagingId.value = ''
   controller.abort()
@@ -141,12 +162,19 @@ function createSSE(url: string, query: string) {
     queryLst.push({ role: 'user', content: query })
   }
 
+  const queryData = {
+    messages: queryLst,
+    stream: true,
+    ...(model ? { model } : null),
+  }
+
   controller = sseRequest.post(
     url,
-    chatType === 'multi' ? { messages: queryLst, model, stream: true } : queryLst,
+    queryData,
     (res) => {
       console.log('res', res)
-      if (!res) return;
+      if (!res)
+        return
 
       if (res.data === '[DONE]') {
         handleEnd()
@@ -160,13 +188,14 @@ function createSSE(url: string, query: string) {
           updateMessagingChat('answer', content)
           handleScrollToBottom()
         }
-      } catch (error) {
+      }
+      catch (error) {
         console.error('Failed to parse SSE data:', error, res.data)
       }
     },
     () => {
       handleEnd() // 错误处理
-      updateMessagingChat('answer', '异常无法响应')
+      updateMessagingChat('answer', t('multiChat.responseError'))
     },
   )
 }
@@ -179,14 +208,14 @@ function handleSend() {
       return
     if (messagingId.value || isThinking.value) {
       console.log('messagingId', messagingId.value)
-      message.warning('请等待上一次对话结束')
+      message.warning(t('multiChat.waitPreviousChatEnd'))
       return
     }
     if (!promptValue.trim()) {
-      message.warning('请输入指令')
+      message.warning(t('multiChat.enterCommand'))
       return
     }
-    createSSE(`${getBaseURL()}/rpa-ai-service/v1/chat/completions`, promptValue)
+    createSSE(`${getAPIBaseURL()}/rpa-ai-service/v1/chat/completions`, promptValue)
     isThinking.value = true
     const responseId = nanoid()
     messagingId.value = responseId
@@ -207,12 +236,11 @@ function handlePresetClick(item: string) {
 }
 
 function handlePreview() {
-  if (['doc', 'docx'].includes(fileInfo.value.suffix))
-    return false
-  showPreview.value = true
+  couldPreview.value && togglePreview(true)
 }
 
 function handleClose() {
+  replyToMain('')
   windowManager.closeWindow()
 }
 
@@ -221,33 +249,28 @@ onBeforeUnmount(() => clearAllData())
 
 <template>
   <div class="chatModal">
-    <div v-show="showPreview" class="chat-side">
-      <CloseOutlined
-        style="position: absolute; right: 15px; top: 10px; z-index: 999;"
-        @click="() => { showPreview = false }"
-      />
-      <div v-if="fileInfo.suffix === 'txt'" class="txt">
-        <p>{{ fileInfo.previewContent }}</p>
-      </div>
-      <div v-if="fileInfo.suffix === 'pdf'">
-        <PDF :src="fileInfo.previewContent" />
-      </div>
-    </div>
-    <div class="chat-main" :style="`width: ${showPreview ? '480px;' : '800px;'}`">
-      <div class="chat-header flex items-center pr-[18px]">
-        <div class="drag flex-1 px-[18px] pt-[18px]">{{ title }}</div>
+    <Preview
+      v-show="showPreview"
+      class="mr-2.5"
+      :file-info="fileInfo"
+      @close="togglePreview(false)"
+    />
+    <div class="chat-main flex-1 bg-bg-elevated relative">
+      <component :is="ChatBgSvg" class="absolute top-0 left-0 w-full" />
+      <div class="chat-header relative flex items-center pr-[18px]">
+        <div class="drag flex-1 px-[18px] pt-[18px]">
+          {{ title }}
+        </div>
         <CloseOutlined @click="handleClose" />
       </div>
-      <div class="chat-content">
+      <div class="chat-content relative">
         <div v-if="chatType === 'file'" class="chat-list-preset">
-          <div class="basic preset-file" @click="handlePreview">
-            <div class="filename">
-              <img :width="40" :height="40" style="margin-right: 10px;" :src="FILE_TYPE_IMG[fileInfo.suffix]">
-              <a-tooltip :title="fileInfo.path">
-                {{ fileInfo.name }}
-              </a-tooltip>
-            </div>
-            <a-tooltip v-if="!['doc', 'docx'].includes(fileInfo.suffix)" title="查看文档">
+          <div class="basic preset-file flex items-center gap-2.5" @click="handlePreview">
+            <img :width="40" :height="40" :src="FILE_TYPE_IMG[fileInfo.suffix]">
+            <a-tooltip :title="fileInfo.path">
+              {{ fileInfo.name }}
+            </a-tooltip>
+            <a-tooltip v-if="couldPreview" :title="t('multiChat.viewDocument')">
               <ZoomInOutlined />
             </a-tooltip>
           </div>
@@ -262,10 +285,12 @@ onBeforeUnmount(() => clearAllData())
         </div>
         <div v-if="chatType === 'multi' && chatDataList?.length === 0" class="chat-list-empty">
           <div class="title">
-            你好，我可以为你做什么
+            {{ t('multiChat.greeting') }}
           </div>
-          <div class="copyright">
-            内容由<img width="16" height="16" src="@/assets/img/xinghuo.png" alt="">星火大模型生成
+          <div class="flex items-center gap-[3px] text-text-tertiary">
+            <span>{{ t('multiChat.contentBy') }}</span>
+            <img width="16" height="16" src="@/assets/img/xinghuo.png" alt="xinghuo">
+            <span>{{ t('multiChat.generatedBy', { model: t('sparkDesk') }) }}</span>
           </div>
         </div>
         <div v-if="chatDataList?.length > 0" class="chat-list">
@@ -284,7 +309,7 @@ onBeforeUnmount(() => clearAllData())
               <div class="answer">
                 <span v-if="item.answer" class="message" v-html="item.answer" />
                 <span v-if="isThinking && messagingId === item.id" class="thinking">
-                  <LoadingOutlined />思考中...
+                  <LoadingOutlined />{{ t('multiChat.thinking') }}
                 </span>
               </div>
               <a-button
@@ -296,20 +321,20 @@ onBeforeUnmount(() => clearAllData())
                 ghost
                 @click="handleEnd"
               >
-                停止响应
+                {{ t('multiChat.stopResponding') }}
               </a-button>
             </div>
           </div>
         </div>
       </div>
       <div v-if="isMultiTurnLimit" class="limitTip">
-        {{ `———————— 最多对话${limitTurns}轮 ————————` }}
+        {{ t('multiChat.maxTurnsTip', { count: limitTurns }) }}
       </div>
       <div class="chat-footer">
         <a-input
           v-if="!isSave"
           v-model:value="prompt"
-          :placeholder="isMultiTurnLimit ? '已达到最大对话轮次，请选择需要保存的对话结果' : '输入指令，让AI帮你完成'"
+          :placeholder="isMultiTurnLimit ? t('multiChat.maxTurnsReachedPlaceholder') : t('multiChat.inputPlaceholder')"
           :disabled="isMultiTurnLimit"
           class="promptInput"
           @press-enter="handleSend"
@@ -319,17 +344,14 @@ onBeforeUnmount(() => clearAllData())
           </template>
         </a-input>
         <a-button v-else @click="handleCancel">
-          取消
+          {{ t('cancel') }}
         </a-button>
-        <a-tooltip title="保存为输出参数" placement="topRight">
+        <a-tooltip :title="t('multiChat.saveAsOutputParam')" placement="topRight">
           <a-button
-            v-if="showSave"
-            :type="isSave ? 'primary' : 'default'"
-            :icon="h(SaveOutlined)"
-            class="saveBtn"
+            v-if="showSave" :type="isSave ? 'primary' : 'default'" :icon="h(SaveOutlined)" class="saveBtn"
             @click="handleSave"
           >
-            {{ isSave ? '保存' : '' }}
+            {{ isSave ? t('save') : '' }}
           </a-button>
         </a-tooltip>
       </div>

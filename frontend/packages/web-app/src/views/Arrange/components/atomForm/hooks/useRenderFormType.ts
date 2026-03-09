@@ -1,6 +1,8 @@
 import { NiceModal } from '@rpa/components'
 import { message } from 'ant-design-vue'
 
+import i18next from '@/plugins/i18next'
+
 import BUS from '@/utils/eventBus'
 
 import { validateContractResult } from '@/api/contract'
@@ -11,12 +13,12 @@ import { CustomDialog } from '@/views/Arrange/components/customDialog'
 import { UserFormDialogModal } from '@/views/Arrange/components/customDialog/components'
 import { INPUT_NUMBER_TYPE_ARR, ORIGIN_SPECIAL, ORIGIN_VAR, PROCESS_VAR_TYPE } from '@/views/Arrange/config/atom'
 import { backContainNodeIdx } from '@/views/Arrange/utils/flowUtils'
-import type { resOption } from '@/views/Home/types'
+
+import { ContractValidateModal, EmailTextReplaceModal, TextareaModal } from '../modals'
 
 import { createDom, setEditTextContent } from './useAtomVarPopover'
 import useFormPick from './useFormPick'
 import { getRealValue, getUserFormOption } from './usePreview'
-import { ContractValidateModal, EmailTextReplaceModal, TextareaModal } from '../modals'
 
 const hasDataCategoryType = [VAR_IN_TYPE, GLOBAL_VAR_IN_TYPE, PARAMETER_VAR_IN_TYPE, ELEMENT_IN_TYPE]
 
@@ -35,8 +37,8 @@ export function generateInputVal(itemData: RPA.AtomDisplayItem) {
     // 是变量类型且不是输出变量那才加样式
     if (hasDataCategoryType.includes(item.type) && !Object.is(type, ATOM_FORM_TYPE.RESULT)) {
       const { data, type, value } = item
-      const dataId = data ? `data-id='${data}'` : ''
-      result += `<hr class="ui-at" ${dataId} data-category='${type}' data-name='${value}'></hr>`
+      const dataId = data ? `data-id="${data}"` : ''
+      result += `<hr class="ui-at" ${escapeHTML(dataId)} data-category="${escapeHTML(type)}" data-name="${escapeHTML(value)}"></hr>`
     }
     else {
       result += item.value
@@ -44,6 +46,18 @@ export function generateInputVal(itemData: RPA.AtomDisplayItem) {
   })
 
   return result
+}
+
+function escapeHTML(str: string) {
+  const entityMap = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    '\'': '&#x27;',
+    '/': '&#x2F;',
+  }
+  return String(str).replace(/[&<>"'/]/g, s => entityMap[s])
 }
 
 export function handlePaste(event: ClipboardEvent, itemData: RPA.AtomDisplayItem) {
@@ -105,14 +119,18 @@ function insertHtmlAtCaret(html: string) {
   selection.addRange(range)
 }
 
-export function generateHtmlVal(target: HTMLDivElement, itemData: RPA.AtomDisplayItem) {
+export function generateHtmlVal(target: HTMLDivElement, itemData: RPA.AtomDisplayItem, atomId?: string) {
   const { isExpr, formType, types } = itemData
   const nodeList = target.childNodes
 
   if (itemData.customizeTip)
     delete itemData.customizeTip
   const result: RPA.AtomFormItemResult[] = []
-  if (nodeList.length === 1 && nodeList[0].nodeName === 'BR') {
+  // 注意：不同版本的 Chrome 以及不同浏览器在处理 contenteditable 空状态时行为可能不同
+  // 1. 无子节点（某些浏览器/版本）
+  // 2. 只有一个 BR 标签（Chrome 等浏览器自动插入的占位符）
+  const hasOnlyBr = nodeList.length === 1 && nodeList[0].nodeName === 'BR'
+  if (nodeList.length === 0 || hasOnlyBr) {
     result.push({ type: OTHER_IN_TYPE, value: '' })
   }
   else {
@@ -125,7 +143,7 @@ export function generateHtmlVal(target: HTMLDivElement, itemData: RPA.AtomDispla
         if (INPUT_NUMBER_TYPE_ARR.includes(types) && !Object.is(formType.type, ATOM_FORM_TYPE.RESULT) && Object.is(obj.type, OTHER_IN_TYPE) && !isExpr) {
           const numberPattern = /^-?\d*\.?\d*$/
           if (!numberPattern.test(obj.value))
-            itemData.customizeTip = '只能填入数字'
+            itemData.customizeTip = i18next.t('atomForm.onlyNumberTip')
         }
         if (obj.value)
           result.push(obj)
@@ -158,7 +176,7 @@ export function generateHtmlVal(target: HTMLDivElement, itemData: RPA.AtomDispla
   if (isExpr)
     setPyModeVal(itemData) // 该值是python类型
 
-  syncCurrentAtomData(itemData, false)
+  syncCurrentAtomData(itemData, false, atomId)
 }
 
 export function setPyModeVal(itemData: RPA.AtomDisplayItem) {
@@ -226,9 +244,13 @@ export function formBtnHandle(itemData: RPA.AtomDisplayItem, itemType: string, e
 }
 
 // 同步当前原子能力的值
-export function syncCurrentAtomData(itemData: RPA.AtomDisplayItem, flush = true) {
+export function syncCurrentAtomData(itemData: RPA.AtomDisplayItem, flush = true, atomId?: string) {
   const flowStore = useFlowStore()
-  const idx = flowStore.simpleFlowUIData.findIndex(item => item.id === flowStore.activeAtom.id)
+  const targetAtomId = atomId || flowStore.activeAtom?.id
+  if (!targetAtomId) {
+    return
+  }
+  const idx = flowStore.simpleFlowUIData.findIndex(item => item.id === targetAtomId)
   let alias = ''
   let flag = true
   if (itemData.key === 'anotherName') {
@@ -269,7 +291,7 @@ function useRenderFormType() {
       const target = inputList.find(item => item.key === 'custom_factors')
       // 前置判断是否有要素
       if (!target.value) {
-        message.warning('请先添加要素')
+        message.warning(i18next.t('atomForm.addElementFirst'))
         return
       }
       let hasProcessVarType = false // 是否有流程变量
@@ -281,12 +303,12 @@ function useRenderFormType() {
         return res
       }, {})
       if (hasProcessVarType) {
-        message.warning('存在流变量无法验证效果')
+        message.warning(i18next.t('atomForm.hasProcessVarCannotValidate'))
         return
       }
       itemData.formType.params.loading = true
-      validateContractResult(params).then((res: resOption) => {
-        NiceModal.show(ContractValidateModal, { dataList: res.data })
+      validateContractResult(params).then((data) => {
+        NiceModal.show(ContractValidateModal, { dataList: data })
       }).finally(() => {
         itemData.formType.params.loading = false
       })
@@ -317,19 +339,14 @@ function useRenderFormType() {
     })
   }
 
-  function handleHTMLContentPaste() {
-    return new Promise((resolve) => {
-      const flowStore = useFlowStore()
-      const { activeAtom } = flowStore
-      const { inputList } = activeAtom
-      const is_html = inputList.find(item => item.key === 'is_html')?.value
-      getHTMLClip({ is_html }).then((res: resOption) => {
-        const { data } = res
-        const { content } = data
-        resolve(content)
-      })
-    })
+  async function handleHTMLContentPaste() {
+    const { activeAtom } = useFlowStore()
+    const { inputList } = activeAtom
+    const is_html = inputList.find(item => item.key === 'is_html')?.value
+    const data = await getHTMLClip({ is_html })
+    return data?.content
   }
+
   return {
     handleModalButton,
     handleTextareaModal,

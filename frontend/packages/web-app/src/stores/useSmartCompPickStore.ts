@@ -18,7 +18,7 @@ export const useSmartCompPickStore = defineStore('smartCompPickStore', () => {
 
   const variableStore = useVariableStore()
   const { t } = useTranslation()
-  const { open: openPickMenuWindow } = useSmartCompPickWindow()
+  const { open: openPickMenuWindow } = useSmartCompPickWindow(resetPick)
 
   utilsManager.listenEvent('w2w', ({ from, target, type: eventType }: any) => {
     if (!isPicking.value || from !== WINDOW_NAME.SMART_COMP_PICK_MENU || target !== WINDOW_NAME.MAIN) {
@@ -159,7 +159,7 @@ export const useSmartCompPickStore = defineStore('smartCompPickStore', () => {
     isPicking.value = false
     notifyMenuHide()
     RpaPicker.destroy()
-    windowManager.maximizeWindow(true)
+    windowManager.showWindow()
   }
 
   /**
@@ -236,7 +236,7 @@ export const useSmartCompPickStore = defineStore('smartCompPickStore', () => {
         RpaPicker.send(sendParams)
         ofterSendCb && ofterSendCb()
         if (action === 'SMART_COMPONENT_START') {
-          windowManager.minimizeWindow()
+          windowManager.hideWindow()
         }
       }, 500)
     })
@@ -253,7 +253,7 @@ export const useSmartCompPickStore = defineStore('smartCompPickStore', () => {
         if (!menuPosition) {
           // 当拾取元素非网页元素时，rect 和 win_rect 不存在，显示错误对话框
           RpaPicker.destroy()
-          notifyErrorDialog('当前仅支持网页自动化')
+          notifyErrorDialog(t('smartCompPick.onlyWebAutomation'))
           return
         }
 
@@ -265,11 +265,11 @@ export const useSmartCompPickStore = defineStore('smartCompPickStore', () => {
         console.error(errorMsg)
         if (action === 'SMART_COMPONENT_PREVIOUS') {
           RpaPicker.destroy()
-          notifyErrorDialog('已达最大层级')
+          notifyErrorDialog(t('smartCompPick.maxLevelReached'))
         }
         else if (action === 'SMART_COMPONENT_NEXT') {
           RpaPicker.destroy()
-          notifyErrorDialog('已达最小层级')
+          notifyErrorDialog(t('smartCompPick.minLevelReached'))
         }
         else {
           message.error(errorMsg)
@@ -292,7 +292,7 @@ export const useSmartCompPickStore = defineStore('smartCompPickStore', () => {
     })
   }
 
-  const resetPick = () => {
+  function resetPick() {
     if (isPicking.value) {
       startPickAction('SMART_COMPONENT_CANCEL', () => {
         finishPick()

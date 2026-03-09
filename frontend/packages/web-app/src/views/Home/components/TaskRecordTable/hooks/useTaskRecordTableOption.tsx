@@ -13,18 +13,16 @@ import useTaskRecordOperation from './useTaskRecordOperation.tsx'
 
 export default function useRecordTableOption(props?: { robotId: string }) {
   const homeTableRef = ref(null)
-  function refreshHomeTable() {
-    if (homeTableRef.value) {
-      homeTableRef.value?.fetchTableData()
-    }
+  function refreshWithDelete(count: number = 1) {
+    homeTableRef.value?.refreshWithDelete(count)
   }
   const translate = useTranslation()
-  const { getTableData, handleExpandedRowRender, batchDelete, rowSelection } = useTaskRecordOperation(refreshHomeTable)
+  const { getTableData, handleExpandedRowRender, batchDelete, rowSelection } = useTaskRecordOperation(refreshWithDelete)
   const formList = [
     {
       componentType: 'input',
       bind: 'taskName',
-      placeholder: '请输入任务名称',
+      placeholder: translate.t('taskNamePlaceholder'),
     },
     {
       componentType: 'datePicker',
@@ -33,30 +31,30 @@ export default function useRecordTableOption(props?: { robotId: string }) {
     {
       componentType: 'select',
       bind: 'status',
-      placeholder: '请选择任务状态',
+      placeholder: translate.t('record.selectStatus'),
       options: [
         {
-          label: '全部状态',
+          label: translate.t('record.allStatus'),
           value: '',
         },
         {
-          label: '执行中',
+          label: translate.t('common.executing'),
           value: 'executing',
         },
         {
-          label: '计划完成',
+          label: translate.t('common.planCompleted'),
           value: 'success',
         },
         {
-          label: '启动失败',
+          label: translate.t('common.startFailed'),
           value: 'start_error',
         },
         {
-          label: '执行失败',
+          label: translate.t('common.executionFailed'),
           value: 'exe_error',
         },
         {
-          label: '计划中止',
+          label: translate.t('common.planAborted'),
           value: 'cancel',
         },
       ],
@@ -65,10 +63,10 @@ export default function useRecordTableOption(props?: { robotId: string }) {
     {
       componentType: 'select',
       bind: 'taskType',
-      placeholder: '请选择触发方式',
+      placeholder: translate.t('record.selectTriggerType'),
       options: [
         {
-          label: '全部触发方式',
+          label: translate.t('record.allTriggerType'),
           value: '',
         },
         ...TASK_TYPE_OPTION,
@@ -86,11 +84,11 @@ export default function useRecordTableOption(props?: { robotId: string }) {
       ellipsis: true,
     },
     {
-      title: '执行次数',
+      title: translate.t('record.executionCount'),
       key: 'count',
       dataIndex: 'count',
       ellipsis: true,
-      customRender: ({ record }) => record.count && `第${record.count}次`,
+      customRender: ({ record }) => record.count && translate.t('record.nthExecution', { count: record.count }),
     },
     {
       title: translate.t('excuteCondition'),

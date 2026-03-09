@@ -12,25 +12,12 @@ import { windowManager } from '@/platform'
 import { TaskEditModal } from '@/views/Home/components/TaskEditModal'
 import { useCommonOperate } from '@/views/Home/pages/hooks/useCommonOperate.tsx'
 
-import type { resOption } from '../../../types'
-
 export function useTaskOperation() {
   const taskListTableRef = ref(null)
   const showQueue = ref(false)
   const { t } = useTranslation()
   const { handleDeleteConfirm } = useCommonOperate()
   const taskEditModal = NiceModal.useModal(TaskEditModal)
-
-  function getTableData(params) {
-    return new Promise((resolve) => {
-      getScheduleLst(params).then(({ data }: resOption) => {
-        if (data) {
-          const { total, records } = data
-          resolve({ records, total })
-        }
-      })
-    })
-  }
 
   const handleNewTask = throttle(
     () => {
@@ -54,13 +41,14 @@ export function useTaskOperation() {
     { leading: true, trailing: false },
   )
 
-  function handleDeleteTask(record) {
-    handleDeleteConfirm(t('deleteTaskConfirm', { name: record.name }), () => {
-      deleteTask({ taskId: record.taskId }).then(() => {
-        message.success(t('deleteSuccess'))
-        taskListTableRef.value?.fetchTableData()
-      })
-    })
+  async function handleDeleteTask(record) {
+    const confirm = await handleDeleteConfirm(t('deleteTaskConfirm', { name: record.name }))
+    if (!confirm) {
+      return
+    }
+    await deleteTask({ taskId: record.taskId })
+    message.success(t('deleteSuccess'))
+    taskListTableRef.value?.refreshWithDelete()
   }
 
   const handleEnableTask = async (record) => {
@@ -117,7 +105,7 @@ export function useTaskOperation() {
     taskListTableRef,
     showQueue,
     hideQueue,
-    getTableData,
+    getTableData: getScheduleLst,
     handleNewTask,
     handleEditTask,
     deleteTask,

@@ -256,6 +256,7 @@ class ExecutorManager:
         open_virtual_desk: bool = False,  # 虚拟桌面
         version: str = "",  # 版本号
         is_send_log_event: bool = True,  # 是否需要发送日志事件
+        is_custom_component: bool = False,  # 是否是自定义组件
     ):
         """启动一个实例"""
         executor = Executor()
@@ -317,7 +318,12 @@ class ExecutorManager:
         if run_param:
             try:
                 # 在 temp 目录下创建临时文件
-                temp_dir = tempfile.gettempdir()
+                temp_dir = os.path.join(os.getcwd(), "logs", "param")
+                if os.path.exists(temp_dir):
+                    if os.listdir(temp_dir):
+                        shutil.rmtree(temp_dir)
+                else:
+                    os.makedirs(temp_dir)
                 random_filename = f"run_param_{uuid.uuid4().hex}.tmp"
                 temp_file_path = os.path.join(temp_dir, random_filename)
 
@@ -342,6 +348,8 @@ class ExecutorManager:
             ins.set_param("end_line", end_line)
         if debug:
             ins.set_param("debug", debug)
+        if is_custom_component:
+            ins.set_param("is_custom_component", "y")
         if project_name:
             ins.set_param("project_name", quote(project_name))
         if version:
@@ -396,7 +404,7 @@ class ExecutorManager:
             self.executor_list[executor.exec_id] = executor
 
         # 7. 检查是否真启动完成
-        if executor.wait_start(time_out=5):
+        if executor.wait_start(time_out=20):
             return executor
         else:
             executor.execute_status = ExecuteStatus.FAIL

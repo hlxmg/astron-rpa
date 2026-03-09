@@ -32,7 +32,7 @@ function handleOkConfirm() {
     v-bind="NiceModal.antdModal(modal)"
     :centered="true"
     :width="800"
-    title="文本内容"
+    :title="$t('atomForm.textContent')"
     @ok="handleOkConfirm"
   >
     <AtomFormItem :atom-form-item="modalData" />
@@ -42,9 +42,6 @@ function handleOkConfirm() {
 <style lang='scss' scoped>
 :deep(.editor) {
   height: 300px;
-  overflow: auto;
-  &::-webkit-scrollbar {
-    width: 4px;
-  }
+  white-space: pre-wrap !important; // 保留换行符和空格，且自动换行
 }
 </style>

@@ -90,12 +90,8 @@ const fullTreeData = computed<AtomTreeNode[]>(() => {
           dot: item.isLatest === 0,
         })),
       }
-      const businessComps: RPA.AtomTreeNode = {
-        key: 'businessComponent',
-        title: t('businessComponent'),
-        atomics: processStore.extendTree.state,
-      }
-      list = processStore.isComponent ? [businessComps] : [customComps, businessComps]
+      const businessComps = processStore.extendTree.state
+      list = processStore.isComponent ? businessComps : [customComps, ...businessComps]
       break
     }
   }
@@ -311,6 +307,7 @@ onBeforeMount(() => {
             :icon-color="item.iconColor"
             :dot="item.dot"
             :search-atom="searchAtom"
+            :class="{ 'gap-2': item.key === 'favorite' }"
           />
           <draggable
             v-else
@@ -327,6 +324,7 @@ onBeforeMount(() => {
             <template #item="">
               <div
                 class="tree-node flex items-center px-2 hover:bg-[#5D59FF]/[.35] rounded"
+                :class="{ '!px-0': item.key === 'smart-component' }"
                 @dblclick="doubleItemClick(item)"
               >
                 <UseAtomItem
@@ -335,6 +333,7 @@ onBeforeMount(() => {
                   :icon-color="item.iconColor"
                   :dot="item.dot"
                   :search-atom="searchAtom"
+                  :class="{ 'gap-2': item.key === 'smart-component' }"
                 />
                 <div class="tree-node-action">
                   <CompDetail

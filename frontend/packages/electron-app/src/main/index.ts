@@ -6,10 +6,11 @@ import type { W2WType } from '../types'
 import logger from './log'
 import { envJson } from './env'
 import { listenRender } from './event'
-import { checkPythonRpaProcess, startBackend } from './server'
+import { checkPythonRpaProcess, closeSubProcess, startBackend } from './server'
 import { changeTray, createTray } from './tray'
 import { createSubWindow, createMainWindow as createWindow, electronInfo, getWindowFromLabel, getMainWindow, WindowStack } from './window'
-import { rendererPath, windowBaseUrl } from './path'
+import { rendererPath, windowBaseUrl, extensionHost } from './path'
+import { getExtensionResourcePath } from './extension'
 
 const startTime = Date.now()
 globalThis.MainWindowLoaded = false
@@ -39,14 +40,17 @@ function createMainWindow() {
   const url = windowBaseUrl + 'boot.html'
   logger.info(`app load url: ${url}`)
 
-  mainWindow.loadURL(url).then(() => electronInfo(mainWindow)).catch(() => logger.error('Failed to load URL'))
+  mainWindow.loadURL(url).then(() => electronInfo(mainWindow)).catch(() => {
+    logger.error('Failed to load URL')
+    logger.info('Retry loading URL after 10 seconds...')
+    setTimeout(() => {
+      mainWindow.loadURL(url).then(() => electronInfo(mainWindow))
+    }, 10 * 1000)
+  })
   mainWindow.once('ready-to-show', () => {
     WindowStack.set('main', mainWindow)
     mainWindow.show()
     logger.info(`app show: ${`${Date.now() - startTime}ms`}`)
-  })
-  mainWindow.on('close', () => {
-    process.platform !== 'darwin' ? app.quit() : app.exit()
   })
   createTray(mainWindow)
 }
@@ -92,10 +96,18 @@ function sessionHanlder() {
 function registerRpaProtocol() {
   // 注册自定义协议 rpa://localhost/boot.html 映射到本地 rendererPath/boot.html
   protocol.registerFileProtocol('rpa', (request, callback) => {
+    const u = new URL(request.url)
     try {
-      const u = new URL(request.url)
-      const filePath = path.join(rendererPath, u.pathname)
-      callback({ path: filePath })
+      if (u.hostname === extensionHost) {
+        const paths = u.pathname.split('/')
+        const extensionName = paths[1]
+        const resourcePath = getExtensionResourcePath(extensionName)
+        const filePath = path.join(resourcePath, ...paths.slice(2))
+        callback({ path: filePath })
+      } else {
+        const filePath = path.join(rendererPath, u.pathname)
+        callback({ path: filePath })
+      }
     }
     catch (err) {
       logger.error('rpa protocol file resolve error:', err)
@@ -144,6 +156,15 @@ else {
 
 app.on('window-all-closed', () => {
   app.quit()
+})
+
+let isQuitting = false
+app.on('before-quit', async (e) => {
+  if (isQuitting) return
+  e.preventDefault()
+  isQuitting = true
+  await closeSubProcess()
+  app.exit()
 })
 
 ipcMain.handle('ipcCreateWindow', (_event, options) => {

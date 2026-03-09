@@ -1,21 +1,19 @@
-/** @format */
-
 import { DownOutlined, UpOutlined } from '@ant-design/icons-vue'
 import { Tooltip } from 'ant-design-vue'
+import { useTranslation } from 'i18next-vue'
 import { reactive, ref } from 'vue'
 
 import useRecordOperation from './useRecordOperation.tsx'
 import useRecordTableColumns from './useRecordTableColumns.tsx'
 
 export default function useRecordTableOption(props?: { robotId: string }) {
+  const { t } = useTranslation()
   const homeTableRef = ref(null)
-  function refreshHomeTable() {
-    if (homeTableRef.value) {
-      homeTableRef.value?.fetchTableData()
-    }
+  function refreshWithDelete(count: number = 1) {
+    homeTableRef.value?.refreshWithDelete(count)
   }
-  const { columns } = useRecordTableColumns(props, refreshHomeTable)
-  const { rowSelection, getTableData, batchDelete } = useRecordOperation(refreshHomeTable)
+  const { columns } = useRecordTableColumns(props, refreshWithDelete)
+  const { rowSelection, getTableData, batchDelete } = useRecordOperation(refreshWithDelete)
 
   const tableOption = reactive({
     refresh: false, // 控制表格数据刷新
@@ -25,7 +23,7 @@ export default function useRecordTableOption(props?: { robotId: string }) {
           {
             componentType: 'input',
             bind: 'robotName',
-            placeholder: '请输入应用名称',
+            placeholder: t('enterAppName'),
           },
           {
             componentType: 'datePicker',
@@ -34,26 +32,26 @@ export default function useRecordTableOption(props?: { robotId: string }) {
           {
             componentType: 'select',
             bind: 'result',
-            placeholder: '请选择执行状态',
+            placeholder: t('record.selectStatus'),
             options: [
               {
-                label: '全部状态',
+                label: t('record.allStatus'),
                 value: '',
               },
               {
-                label: '成功',
+                label: t('common.success'),
                 value: 'robotSuccess',
               },
               {
-                label: '失败',
+                label: t('common.fail'),
                 value: 'robotFail',
               },
               {
-                label: '中止',
+                label: t('common.cancel'),
                 value: 'robotCancel',
               },
               {
-                label: '正在执行',
+                label: t('common.robotExecute'),
                 value: 'robotExecute',
               },
             ],
@@ -62,7 +60,7 @@ export default function useRecordTableOption(props?: { robotId: string }) {
         ],
     buttonList: [
       {
-        label: '批量删除',
+        label: t('batchDelete'),
         action: '',
         clickFn: batchDelete,
         hidden: false,
@@ -78,7 +76,7 @@ export default function useRecordTableOption(props?: { robotId: string }) {
       expandIcon: ({ expanded, onExpand, record }) => {
         return record.children
           ? (
-              <Tooltip title={expanded ? '收起' : '展开'}>
+              <Tooltip title={expanded ? t('common.collapse') : t('common.expand')}>
                 <span
                   class="mr-2"
                   onClick={(e) => {

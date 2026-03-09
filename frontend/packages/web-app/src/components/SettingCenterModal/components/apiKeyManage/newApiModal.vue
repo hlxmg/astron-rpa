@@ -8,7 +8,6 @@ import { reactive, ref } from 'vue'
 import { createAPI } from '@/api/setting'
 import { clipboardManager } from '@/platform'
 import type { FormRules } from '@/types/common'
-import type { resOption } from '@/views/Home/types'
 
 const emit = defineEmits(['refresh'])
 
@@ -26,7 +25,7 @@ const formState = reactive<FormState>({
 })
 const rules: FormRules = {
   keyName: [
-    { required: true, message: '请输入API key的名称', trigger: 'change' },
+    { required: true, message: t('settingCenter.apiKeyManage.enterApiKeyName'), trigger: 'change' },
     {
       max: 20,
       message: t('donotExceedCharacters', { num: 20 }),
@@ -40,17 +39,15 @@ function handleCancel() {
   apiStr.value && emit('refresh')
 }
 
-function handleRightBtnClick() {
+async function handleRightBtnClick() {
   if (apiStr.value) {
     clipboardManager.writeClipboardText(apiStr.value)
-    message.success('复制成功')
+    message.success(t('copySuccess'))
     return
   }
-  formRef.value?.validate().then(() => {
-    createAPI({ name: formState.keyName }).then((res: resOption) => {
-      apiStr.value = res.data.api_key
-    })
-  })
+  await formRef.value?.validate()
+  const data = await createAPI({ name: formState.keyName })
+  apiStr.value = data.api_key
 }
 </script>
 
@@ -61,27 +58,27 @@ function handleRightBtnClick() {
     :z-index="101"
     :width="400"
     :mask-closable="false"
-    title="创建 API Key"
+    :title="$t('settingCenter.apiKeyManage.createApiKeyTitle')"
     :after-close="modal.remove"
     @cancel="handleCancel"
   >
     <a-form ref="formRef" :model="formState" :rules="rules" autocomplete="off" layout="vertical" class="mt-[16px]">
-      <a-form-item label="名称" name="keyName">
-        <a-input v-if="!apiStr" v-model:value="formState.keyName" placeholder="请输入API key的名称" />
+      <a-form-item :label="$t('settingCenter.apiKeyManage.name')" name="keyName">
+        <a-input v-if="!apiStr" v-model:value="formState.keyName" :placeholder="$t('settingCenter.apiKeyManage.enterApiKeyName')" />
         <div v-else>
           <a-input v-model:value="apiStr" readonly />
           <div class="info mt-[8px] py-[8px] px-[12px] rounded-[12px] bg-[rgba(0,0,0,0.04)] dark:bg-[rgba(255,255,255,0.04)]">
-            请将此API key保存在安全且易于访问的地方。出于安全原因，即将无法通过API keys管理界面再次查看它。如果你丢失了这个key，将需要重新创建。
+            {{ $t('settingCenter.apiKeyManage.apiKeyInfo') }}
           </div>
         </div>
       </a-form-item>
     </a-form>
     <template #footer>
       <a-button @click="handleCancel">
-        {{ apiStr ? '关闭' : '取消' }}
+        {{ apiStr ? $t('settingCenter.apiKeyManage.close') : $t('common.cancel') }}
       </a-button>
       <a-button type="primary" @click="handleRightBtnClick">
-        {{ apiStr ? '复制' : '创建' }}
+        {{ apiStr ? $t('settingCenter.apiKeyManage.copy') : $t('settingCenter.apiKeyManage.create') }}
       </a-button>
     </template>
   </a-modal>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useTranslation } from 'i18next-vue'
+
 import type { AuthType, Edition, InviteInfo, Platform } from '../../interface'
 
 import ForgotPassword from './ForgotPassword.vue'
@@ -19,6 +21,7 @@ const props = defineProps({
 })
 const emits = defineEmits(['finish'])
 
+const { t } = useTranslation()
 const {
   currentFormMode,
   cacheFormData,
@@ -41,7 +44,11 @@ defineExpose({
 </script>
 
 <template>
-  <div class="auth-container-content h-[540px]">
+  <div
+    class="auth-container-content bg-[#ffffff]
+    w-full h-[480px] fixed left-0 bottom-0 z-[999] rounded-t-[24px]
+    md:w-[400px] md:h-[540px] md:static md:rounded-[16px]"
+  >
     <Login
       v-if="currentFormMode === 'login'"
       :key="`${edition}_${authType}_login`"
@@ -69,9 +76,9 @@ defineExpose({
     <ForgotPassword
       v-else-if="['forgotPasswordWithSysUpgrade', 'forgotPassword'].includes(currentFormMode)"
       :key="`${edition}_${authType}_forgotPassword`"
-      :running="running"
-      :title="currentFormMode === 'forgotPasswordWithSysUpgrade' ? '系统已升级，请重新设置密码' : ''"
       v-model="cacheFormData[currentFormMode]"
+      :running="running"
+      :title="currentFormMode === 'forgotPasswordWithSysUpgrade' ? t('auth.systemUpgradedResetPwd') : ''"
       @submit="handleForgotPassword"
       @switch-to-login="() => switchMode('login')"
     />
@@ -79,7 +86,7 @@ defineExpose({
     <SetPassword
       v-else-if="['setPasswordWithSysUpgrade', 'setPassword'].includes(currentFormMode)"
       :key="`${edition}_${authType}_setPassword`"
-      :title="currentFormMode === 'setPasswordWithSysUpgrade' ? '系统已升级，请重新设置密码' : ''"
+      :title="currentFormMode === 'setPasswordWithSysUpgrade' ? t('auth.systemUpgradedResetPwd') : ''"
       :running="running"
       :invite-info="inviteInfo"
       @submit="handleSetPassword"

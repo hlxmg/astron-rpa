@@ -6,21 +6,23 @@ import { set } from 'lodash-es'
 import { defineStore } from 'pinia'
 import { computed, ref, shallowRef } from 'vue'
 
-import { generateUUID } from '@/utils/common'
+import i18next from '@/plugins/i18next'
+
+import { generateUUID, getCookie, sleep } from '@/utils/common'
 import { baseUrl } from '@/utils/env'
 
 import type { StartExecutorParams } from '@/api/resource'
 import { closeDataTable, deleteDataTable, getDataTable, startDataTableListener, startExecutor, stopExecutor, updateDataTable } from '@/api/resource'
 import Socket from '@/api/ws'
 import { WINDOW_NAME } from '@/constants'
-import { windowManager, type CreateWindowOptions } from '@/platform'
+import { windowManager } from '@/platform'
+import type { CreateWindowOptions } from '@/platform'
 import { useFlowStore } from '@/stores/useFlowStore'
 import { useProcessStore } from '@/stores/useProcessStore'
 import { useRunlogStore } from '@/stores/useRunlogStore'
 import useUserSettingStore from '@/stores/useUserSetting.ts'
-import type { Fun, AnyObj } from '@/types/common'
+import type { AnyObj, Fun } from '@/types/common'
 import { changeDebugging } from '@/views/Arrange/components/flow/hooks/useChangeStatus'
-import { getCookie, sleep } from '@/utils/common'
 
 export type RunState = 'run' | 'free' | 'debug' | 'silence' // 执行状态
 
@@ -148,7 +150,8 @@ export const useRunningStore = defineStore('running', () => {
           height: 400,
           resizable: false,
           skipTaskbar: true,
-          transparent: true,
+          transparent: false,
+          show: false,
         }
 
         windowManager.createWindow(options)
@@ -206,9 +209,9 @@ export const useRunningStore = defineStore('running', () => {
 
   // 关闭执行过程中创建的窗口
   const closeCreatedWindows = () => {
-    createdWindowLabels.forEach(label => {
-      windowManager.closeWindow(label)
-    })
+    // 关闭日志弹窗
+    windowManager.closeWindow(WINDOW_NAME.LOGWIN)
+    createdWindowLabels.forEach(label => windowManager.closeWindow(label))
     createdWindowLabels = []
   }
 
@@ -268,6 +271,7 @@ export const useRunningStore = defineStore('running', () => {
 
     line && (runParams.line = line)
     end_line && (runParams.end_line = end_line)
+    processStore.isComponent && (runParams.is_custom_component = processStore.isComponent)
 
     running.value = 'run'
     start(runParams)
@@ -275,7 +279,10 @@ export const useRunningStore = defineStore('running', () => {
   }
 
   const startDebug = (projectId: string | number, processId: string | number) => {
-    const debugParams = { project_id: projectId, process_id: processId, debug: 'y' }
+    const debugParams: StartExecutorParams = { project_id: projectId, process_id: processId, debug: 'y' }
+
+    processStore.isComponent && (debugParams.is_custom_component = processStore.isComponent)
+
     running.value = 'debug'
     start(debugParams)
   }
@@ -294,7 +301,7 @@ export const useRunningStore = defineStore('running', () => {
 
   const nextStepDebug = () => {
     if (running.value !== 'debug')
-      return message.warning('请先启动调试')
+      return message.warning(i18next.t('common.startDebugFirst'))
     const msg = {
       event_id: generateUUID(),
       event_time: Date.now(),
@@ -308,7 +315,7 @@ export const useRunningStore = defineStore('running', () => {
 
   const continueDebug = () => {
     if (running.value !== 'debug')
-      return message.warning('请先启动调试')
+      return message.warning(i18next.t('common.startDebugFirst'))
     const msg = {
       event_id: generateUUID(),
       event_time: Date.now(),

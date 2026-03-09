@@ -7,16 +7,16 @@ import {
   SettingOutlined,
 } from '@ant-design/icons-vue'
 import { NiceModal } from '@rpa/components'
+import { debounce } from 'lodash-es'
 import type { Ref } from 'vue'
 import { computed, inject, ref, watch } from 'vue'
-import { debounce } from 'lodash-es'
 
 import { ATOM_FORM_TYPE } from '@/constants/atom'
+import { utilsManager } from '@/platform'
 import useCursorStore from '@/stores/useCursorStore'
 import { useFlowStore } from '@/stores/useFlowStore'
 import { ElementPickModal } from '@/views/Arrange/components/pick'
 import { ORIGIN_BUTTON } from '@/views/Arrange/config/atom'
-import { utilsManager } from '@/platform'
 
 import CvPickBtn from '../cvPick/CvPickBtn.vue'
 
@@ -29,6 +29,7 @@ import AtomPopover from './AtomPopover.vue'
 import AtomRemoteFiles from './AtomRemoteFiles.vue'
 import AtomRemoteSelect from './AtomRemoteSelect.vue'
 import AtomScriptParams from './AtomScriptParams.vue'
+import AtomSelect from './AtomSelect.vue'
 import AtomSlider from './AtomSlider.vue'
 import { createDom } from './hooks/useAtomVarPopover'
 import { isConditionalKeys } from './hooks/useBaseConfig'
@@ -91,6 +92,10 @@ watch(() => itemData.value, () => { // 特殊处理自定义对话框视图多�
 })
 
 function clickHandle(e?: Event) {
+  // Python 模式在禁用状态下禁止切换
+  if (itemType === ATOM_FORM_TYPE.PYTHON && (!isEdit.value || atomFormDisabled.value)) {
+    return
+  }
   if (itemType === ATOM_FORM_TYPE.MODALBUTTON) {
     handleModalButton(itemData)
     return
@@ -118,15 +123,16 @@ function clickHandle(e?: Event) {
   formBtnHandle(itemData, itemType, extra)
 }
 
-function handleFileSelect() {
-  utilsManager.showDialog(itemData.formType.params).then((res) => {
-    if (res) {
-      const strVal = Array.isArray(res) ? res.join(',') : res
-      itemData.value = strVal
-      flowStore.setFormItemValue(itemData.key, strVal, flowStore.activeAtom.id)
-      emit('update')
-    }
-  })
+async function handleFileSelect() {
+  const res = await utilsManager.showDialog(itemData.formType.params)
+  const strVal = res.join(',')
+
+  if (!strVal)
+    return
+
+  itemData.value = strVal
+  flowStore.setFormItemValue(itemData.key, strVal, flowStore.activeAtom.id)
+  emit('update')
 }
 
 // 不会刷新当前配置页
@@ -140,10 +146,16 @@ function handleAtomRemoteSelect(val: any) {
   syncCurrentAtomData(itemData, false)
 }
 
-const handleInput = debounce((event: Event, itemData: RPA.AtomDisplayItem) => {
-  const target = event.target as HTMLDivElement
-  generateHtmlVal(target, itemData)
+const debouncedGenerateHtmlVal = debounce((target: HTMLDivElement, itemData: RPA.AtomDisplayItem, atomId: string) => {
+  generateHtmlVal(target, itemData, atomId)
 }, 500)
+
+function handleInput(event: Event, itemData: RPA.AtomDisplayItem) {
+  // 保存当前 activeAtom.id，避免在 debounce 延迟期间切换 activeAtom 导致更新到错误的原子能力
+  const currentAtomId = flowStore.activeAtom?.id
+  const target = event.target as HTMLDivElement
+  debouncedGenerateHtmlVal(target, itemData, currentAtomId)
+}
 
 inputListListener(itemData, itemType)
 </script>
@@ -153,9 +165,10 @@ inputListListener(itemData, itemType)
   <span
     v-if="itemType === ATOM_FORM_TYPE.PYTHON"
     class="cursor-pointer leading-none"
+    :class="{ '[&>*]:cursor-not-allowed': !isEdit || atomFormDisabled }"
     @click="clickHandle"
   >
-    <rpa-hint-icon :title="itemData.isExpr ? 'python模式' : '普通模式'" :name="itemData.isExpr ? 'create-python-process' : 'change-python-btn'" :style="iconStyle" />
+    <rpa-hint-icon :title="itemData.isExpr ? $t('atomForm.pythonMode') : $t('atomForm.normalMode')" :name="itemData.isExpr ? 'create-python-process' : 'change-python-btn'" :style="iconStyle" />
   </span>
   <!-- input框 -->
   <div
@@ -169,7 +182,7 @@ inputListListener(itemData, itemType)
     v-html="container"
   />
   <!-- CV图片框 -->
-  <AtomPopover v-if="itemType === ATOM_FORM_TYPE.CV_IMAGE" :render-type="itemType" :render-data="itemData" tooltip="选择元素">
+  <AtomPopover v-if="itemType === ATOM_FORM_TYPE.CV_IMAGE" :render-type="itemType" :render-data="itemData" :tooltip="$t('atomForm.selectElement')">
     <span class="w-5 h-5 flex justify-center items-center relative cursor-pointer">
       <rpa-icon size="16" name="bottom-menu-ele-manage" />
     </span>
@@ -198,7 +211,7 @@ inputListListener(itemData, itemType)
     :render-data="itemData"
     :var-type="varType"
   >
-    <rpa-hint-icon name="open-var-btn" title="选择变量" class="cursor-pointer" :style="iconStyle" />
+    <rpa-hint-icon name="open-var-btn" :title="$t('atomForm.selectVariable')" class="cursor-pointer" :style="iconStyle" />
   </AtomPopover>
   <!-- 颜色设置框 -->
   <AtomPopover
@@ -216,11 +229,11 @@ inputListListener(itemData, itemType)
     @click="clickHandle"
   >
     <template #icon>
-      <rpa-hint-icon title="填充内容" size="14" name="bottom-pick-menu-create" />
+      <rpa-hint-icon :title="$t('atomForm.fillContent')" size="14" name="bottom-pick-menu-create" />
     </template>
   </a-button>
   <!-- 拾取框 -->
-  <AtomPopover v-if="itemType === ATOM_FORM_TYPE.PICK" :render-type="itemType" :render-data="itemData" tooltip="选择元素">
+  <AtomPopover v-if="itemType === ATOM_FORM_TYPE.PICK" :render-type="itemType" :render-data="itemData" :tooltip="$t('atomForm.selectElement')">
     <a-button type="text" class="flex justify-center items-center">
       <template #icon>
         <rpa-icon size="16" name="bottom-menu-ele-manage" />
@@ -271,26 +284,7 @@ inputListListener(itemData, itemType)
     :un-checked-children="itemData?.options[1].label"
   />
   <!-- 下拉框 -->
-  <a-select
-    v-if="itemType === ATOM_FORM_TYPE.SELECT"
-    v-model:value="selectValue"
-    :mode="itemData.formType.params?.multiple ? 'multiple' : undefined"
-    placeholder="请选择"
-    class="bg-[#f3f3f7] dark:bg-[rgba(255,255,255,0.08)] text-[rgba(0,0,0,0.85)] dark:text-[rgba(255,255,255,0.85)] rounded-[8px]"
-    style="width: 100%;"
-  >
-    <a-select-option v-for="(op, index) in itemData.options" :key="index" :value="op?.label ? op.value : op.rId">
-      <template v-if="op?.label">
-        {{ op.label }}
-      </template>
-      <template v-else>
-        <span v-for="(it, idx) in op.value.value" :key="idx">
-          <hr v-if="it.type === 'var'" class="dialog-tag-input-hr" :data-name="it.value">
-          <span v-else>{{ it.value }}</span>
-        </span>
-      </template>
-    </a-select-option>
-  </a-select>
+  <AtomSelect v-if="itemType === ATOM_FORM_TYPE.SELECT" v-model:value="selectValue" :render-data="itemData" />
   <AtomRemoteSelect
     v-if="itemType === ATOM_FORM_TYPE.REMOTEPARAMS"
     :render-data="itemData"
@@ -418,13 +412,13 @@ inputListListener(itemData, itemType)
 .editor {
   width: calc(100% - 42px);
   padding: 0 5px;
-  white-space: nowrap;
-  overflow-x: auto;
-  overflow-y: hidden;
-  --custom-cursor-size: 18px;
   margin-right: 3px;
+  --custom-cursor-size: 18px;
+  white-space: pre; // 保留换行符和空格，但不自动换行
+  overflow: auto;
+
   &::-webkit-scrollbar {
-    height: 0px;
+    display: none;
   }
 
   &:focus {

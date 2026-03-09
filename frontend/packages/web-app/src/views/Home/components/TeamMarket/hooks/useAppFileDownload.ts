@@ -1,4 +1,7 @@
+import { to } from 'await-to-js'
 import { ref } from 'vue'
+
+import i18next from '@/plugins/i18next'
 
 import { appendixDownload, cancelAppendixDownload } from '@/api/market'
 import { utilsManager } from '@/platform'
@@ -45,24 +48,20 @@ export function useAppFileDownload() {
     }
   }
 
-  const download = (item) => {
+  const download = async (item) => {
     item.percent = 0
     item.status = AppFileStatus.normal
-    utilsManager.showDialog({
-      title: '选择保存文件目录',
+    const res = await utilsManager.showDialog({
+      title: i18next.t('common.selectSaveDirectory'),
       properties: ['openDirectory'],
-    }).then((res: any) => {
-      startProgress(item)
-      appendixDownload({
-        appendixLink: item.link,
-        savePath: res,
-        resourceType: 'project',
-      }).then(() => {
-        finishDownload(item, AppFileStatus.success)
-      }).catch(() => {
-        finishDownload(item, AppFileStatus.exception)
-      })
     })
+    startProgress(item)
+    const [err] = await to(appendixDownload({
+      appendixLink: item.link,
+      savePath: res[0],
+      resourceType: 'project',
+    }))
+    finishDownload(item, err ? AppFileStatus.exception : AppFileStatus.success)
   }
 
   const cancelDownload = (item) => {

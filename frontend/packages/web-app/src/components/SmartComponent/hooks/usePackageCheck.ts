@@ -1,6 +1,7 @@
+import { useTranslation } from 'i18next-vue'
 import { computed, inject, provide, ref } from 'vue'
 
-import { getRootBaseURL } from '@/api/http/env'
+import { getBaseURL } from '@/api/http/env'
 import { addPyPackageApi, getPyPackageListApi, packageVersion } from '@/api/resource'
 import { sseRequest } from '@/api/sse'
 import { mirrorList } from '@/components/PythonPackageManagement/config'
@@ -11,6 +12,7 @@ import { usePythonPackageStore } from '@/stores/usePythonPackageStore'
 export function usePackageCheckContext() {
   const processStore = useProcessStore()
   const pythonPackageStore = usePythonPackageStore()
+  const { t } = useTranslation()
 
   const packages = ref<string[]>([])
   const lackPackages = ref<string[]>([])
@@ -54,7 +56,7 @@ export function usePackageCheckContext() {
   function installPackageAsync(packageName: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const controller = sseRequest.post(
-        `${getRootBaseURL()}/scheduler/pip/install`,
+        `${getBaseURL()}/scheduler/pip/install`,
         {
           project_id: processStore.project.id,
           package: packageName,
@@ -76,7 +78,7 @@ export function usePackageCheckContext() {
 
           if (newData.includes('stderr')) {
             controller.abort()
-            reject(new Error(`安装 ${packageName} 失败`))
+            reject(new Error(t('smartComponent.installPackageFailed', { packageName })))
             return
           }
 

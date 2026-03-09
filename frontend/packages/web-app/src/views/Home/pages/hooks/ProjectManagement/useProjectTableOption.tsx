@@ -3,6 +3,7 @@ import { storeToRefs } from 'pinia'
 import { reactive, ref, watch } from 'vue'
 
 import { getDesignList } from '@/api/project'
+import type { TableOption } from '@/components/NormalTable'
 import type { VIEW_OTHER } from '@/constants/resource'
 import { VIEW_OWN } from '@/constants/resource'
 import { useAppConfigStore } from '@/stores/useAppConfig'
@@ -16,18 +17,20 @@ export default function useProjectTableOption(dataSource: DataSource = VIEW_OWN)
   const homeTableRef = ref(null)
   const consultRef = ref(null)
 
-  const { createColumns, currHoverId, handleEdit } = useProjectOperate(homeTableRef, consultRef)
+  function refreshHomeTable() {
+    homeTableRef.value?.fetchTableData()
+  }
+
+  function refreshWithDelete(count: number = 1) {
+    homeTableRef.value?.refreshWithDelete(count)
+  }
+
+  const { createColumns, currHoverId, handleEdit } = useProjectOperate(homeTableRef, consultRef, refreshHomeTable, refreshWithDelete)
   const appStore = useAppConfigStore()
   const userStore = useUserStore()
   const { appInfo } = storeToRefs(appStore)
 
-  function refreshHomeTable() {
-    if (homeTableRef.value) {
-      homeTableRef.value?.fetchTableData()
-    }
-  }
-
-  const tableOption = reactive({
+  const tableOption = reactive<TableOption>({
     refresh: false, // 控制表格数据刷新
     getData: getDesignList,
     formList: [ // 表格上方的表单配置
