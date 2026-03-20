@@ -116,17 +116,14 @@ const showLabel = computed(() => {
     <div v-if="isCuaInstructionField" class="cua-debug-tip">
       <rpa-icon name="info" size="16" class="cua-debug-tip-icon" />
       <div class="cua-debug-hint-content">
-        <div class="cua-debug-hint">AI可能误判，运行将消耗增值服务积分，优先消耗</div>
-        <div class="cua-debug-hint-row">
-          <span class="cua-debug-hint">赠送额度。</span>
-          <a
-            class="cua-more-btn"
-            href="javascript:void(0)"
-            @click.prevent="utilsManager.openInBrowser(AI_BILLING_RULE_URL)"
-          >
-            查看更多
-          </a>
-        </div>
+        <span class="cua-debug-hint">AI可能误判，运行将消耗增值服务积分，优先消耗赠送额度。</span>
+        <a
+          class="cua-more-btn"
+          href="javascript:void(0)"
+          @click.prevent="utilsManager.openInBrowser(AI_BILLING_RULE_URL)"
+        >
+          查看更多
+        </a>
       </div>
     </div>
     <label
@@ -238,23 +235,22 @@ const showLabel = computed(() => {
     min-width: 0;
   }
 
-  .cua-debug-hint-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    margin-top: 2px;
-  }
-
   .cua-debug-hint {
+    display: inline;
+    flex: 1;
+    min-width: 0;
     color: #eb6e49;
   }
 
   .cua-more-btn {
+    float: right;
     flex-shrink: 0;
-    padding: 2px 12px;
+    padding: 0 10px;
     font-size: 12px;
-    line-height: 20px;
+    line-height: 1.4;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
     color: #fff;
     background: #eb6e49;
     border-radius: 999px;
