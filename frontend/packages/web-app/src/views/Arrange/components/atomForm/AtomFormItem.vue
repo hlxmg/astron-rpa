@@ -25,6 +25,11 @@ const isCuaInstructionField = computed(() => {
   return flowStore.activeAtom?.key?.startsWith('ComputerUse.') && atomFormItem.key === 'instruction'
 })
 
+// 模板按钮仅在「自定义AI操作屏幕」原子能力中显示
+const showTemplateButton = computed(() => {
+  return isCuaInstructionField.value && flowStore.activeAtom?.key === 'ComputerUse.custom_action_screen'
+})
+
 const currentInstruction = computed(() => {
   const value = atomFormItem.value
   if (Array.isArray(value)) {
@@ -159,7 +164,7 @@ const showLabel = computed(() => {
           {{ $t('common.fieldIsRequired', { field: atomFormItem.title }) }}
         </article>
         <div class="cua-debug-actions">
-          <a-dropdown :trigger="['hover']">
+          <a-dropdown v-if="showTemplateButton" :trigger="['hover']">
             <template #overlay>
               <a-menu @click="handleTemplateSelect">
                 <a-menu-item v-for="item in cuaInstructionTemplates" :key="item.key">
@@ -168,10 +173,13 @@ const showLabel = computed(() => {
               </a-menu>
             </template>
             <a-button size="small" class="cua-template-trigger">
+              <template #icon>
+                <rpa-icon name="component-manage" size="12" />
+              </template>
               模板
             </a-button>
           </a-dropdown>
-        <a-tooltip title="Debug">
+        <a-tooltip title="在浮窗中调试">
           <a-button
             size="small"
             class="cua-debug-trigger"
@@ -274,10 +282,12 @@ const showLabel = computed(() => {
   .cua-template-trigger {
     height: 28px;
     padding: 0 10px;
+    font-size: 12px;
     border-radius: 6px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 4px;
     box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
   }
 

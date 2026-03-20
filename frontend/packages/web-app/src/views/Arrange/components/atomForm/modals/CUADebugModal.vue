@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { NiceModal } from '@rpa/components'
 import { CloseOutlined, MinusOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
@@ -86,6 +86,7 @@ const debugStreamPath = computed(() => `./venvs/${resolvedProjectId.value}/astro
 const collapseButtonText = computed(() => (collapsed.value ? 'Expand' : 'Collapse'))
 const panelWidth = computed(() => (collapsed.value ? 360 : 460))
 const isStandaloneWindow = computed(() => standaloneWindow)
+const debugPanelTitle = computed(() => currentAtom.value?.title || '调试模式')
 
 if (props.project) {
   processStore.setProject(props.project)
@@ -526,7 +527,7 @@ onBeforeUnmount(() => {
   <div v-if="isStandaloneWindow || modal.visible" class="cua-debug-overlay" :class="{ 'cua-debug-overlay--standalone': isStandaloneWindow }">
     <div class="cua-debug-panel" :class="{ 'cua-debug-panel--standalone': isStandaloneWindow }" :style="isStandaloneWindow ? undefined : { width: `${panelWidth}px` }">
       <div class="panel-header">
-        <div class="panel-header__title">调试模式</div>
+        <div class="panel-header__title">{{ debugPanelTitle }}</div>
         <div class="panel-header__actions">
           <a-tooltip :title="collapseButtonText">
             <a-button size="small" class="panel-header__icon-btn" @click="collapsed = !collapsed">
