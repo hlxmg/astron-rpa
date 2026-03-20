@@ -3,8 +3,8 @@ import { NiceModal } from '@rpa/components'
 import { computed } from 'vue'
 
 import { ProcessModal } from '@/views/Arrange/components/process'
-import { WINDOW_NAME } from '@/constants'
-import { windowManager } from '@/platform'
+import { AI_BILLING_RULE_URL, WINDOW_NAME } from '@/constants'
+import { utilsManager, windowManager } from '@/platform'
 import { baseUrl } from '@/utils/env'
 import { useFlowStore } from '@/stores/useFlowStore'
 import { useProcessStore } from '@/stores/useProcessStore'
@@ -109,8 +109,20 @@ const showLabel = computed(() => {
 <template>
   <div class="form-container">
     <div v-if="isCuaInstructionField" class="cua-debug-tip">
-      <rpa-icon name="info" size="16" class="text-[#eb6e49]" />
-      <span class="cua-debug-hint"> AI可能误判，运行将消耗增值服务积分，优先消耗赠送额度。</span>
+      <rpa-icon name="info" size="16" class="cua-debug-tip-icon" />
+      <div class="cua-debug-hint-content">
+        <div class="cua-debug-hint">AI可能误判，运行将消耗增值服务积分，优先消耗</div>
+        <div class="cua-debug-hint-row">
+          <span class="cua-debug-hint">赠送额度。</span>
+          <a
+            class="cua-more-btn"
+            href="javascript:void(0)"
+            @click.prevent="utilsManager.openInBrowser(AI_BILLING_RULE_URL)"
+          >
+            查看更多
+          </a>
+        </div>
+      </div>
     </div>
     <label
       v-if="showLabel"
@@ -202,8 +214,49 @@ const showLabel = computed(() => {
     margin-top: 8px;
   }
 
+  .cua-debug-tip {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .cua-debug-tip-icon {
+    color: #eb6e49;
+    flex-shrink: 0;
+  }
+
+  .cua-debug-hint-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .cua-debug-hint-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 2px;
+  }
+
   .cua-debug-hint {
-    color: #eb6e49; // 改成你想要的颜色
+    color: #eb6e49;
+  }
+
+  .cua-more-btn {
+    flex-shrink: 0;
+    padding: 2px 12px;
+    font-size: 12px;
+    line-height: 20px;
+    color: #fff;
+    background: #eb6e49;
+    border-radius: 999px;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: opacity 0.2s;
+
+    &:hover {
+      opacity: 0.9;
+    }
   }
 
   .cua-debug-actions {
