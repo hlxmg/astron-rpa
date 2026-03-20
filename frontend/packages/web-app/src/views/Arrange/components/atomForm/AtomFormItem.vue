@@ -3,10 +3,13 @@ import { NiceModal } from '@rpa/components'
 import { computed } from 'vue'
 
 import { ProcessModal } from '@/views/Arrange/components/process'
+import { WINDOW_NAME } from '@/constants'
+import { windowManager } from '@/platform'
+import { baseUrl } from '@/utils/env'
 import { useFlowStore } from '@/stores/useFlowStore'
+import { useProcessStore } from '@/stores/useProcessStore'
 
 import AtomConfig from './AtomConfig.vue'
-import { CUADebugModal } from './modals'
 import {
   getLimitLengthTip,
   useFormItemLimitLength,
@@ -16,6 +19,7 @@ import {
 const { atomFormItem } = defineProps<{ atomFormItem: RPA.AtomDisplayItem }>()
 
 const flowStore = useFlowStore()
+const processStore = useProcessStore()
 
 const isCuaInstructionField = computed(() => {
   return flowStore.activeAtom?.key?.startsWith('ComputerUse.') && atomFormItem.key === 'instruction'
@@ -30,15 +34,42 @@ const currentInstruction = computed(() => {
   return typeof value === 'string' ? value : ''
 })
 
-function openCuaDebugModal() {
+async function openCuaDebugModal() {
   if (!flowStore.activeAtom?.id) {
     return
   }
 
-  NiceModal.show(CUADebugModal, {
+  const state = encodeURIComponent(JSON.stringify({
     atomId: flowStore.activeAtom.id,
+    atomSnapshot: flowStore.activeAtom,
+    currentLine: flowStore.simpleFlowUIData.findIndex(item => item.id === flowStore.activeAtom?.id) + 1,
     initialInstruction: currentInstruction.value,
+    projectId: processStore.project.id,
+    processId: processStore.activeProcessId,
+    project: processStore.project,
+  }))
+
+  windowManager.closeWindow(WINDOW_NAME.CUA_DEBUG)
+
+  await windowManager.createWindow({
+    url: `${baseUrl}/cuadebug.html?ts=${Date.now()}&state=${state}`,
+    title: 'CUA Debug',
+    label: WINDOW_NAME.CUA_DEBUG,
+    alwaysOnTop: false,
+    position: 'right_center',
+    offset: 40,
+    width: 360,
+    height: 520,
+    resizable: false,
+    decorations: false,
+    fileDropEnabled: false,
+    maximizable: false,
+    transparent: false,
+  }, () => {
+    windowManager.showWindow()
   })
+
+  windowManager.hideWindow()
 }
 
 // 是否展示 label
