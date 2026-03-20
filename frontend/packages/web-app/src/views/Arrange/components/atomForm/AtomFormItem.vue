@@ -34,6 +34,34 @@ const currentInstruction = computed(() => {
   return typeof value === 'string' ? value : ''
 })
 
+const cuaInstructionTemplates = [
+  { key: 'general', label: '通用模板', text: '请根据当前屏幕完成用户目标：{{目标}}。需要先观察页面再执行，必要时先询问我确认。' },
+  { key: 'extract', label: '提取屏幕数据', text: '请从当前屏幕提取以下信息：{{字段列表}}。要求逐条列出，并保持原文。' },
+  { key: 'fill', label: '填写表单', text: '请根据提供的信息填写表单：{{字段与值}}。填写前先确认字段是否匹配。' },
+  { key: 'captcha', label: '处理验证码', text: '如果页面出现验证码，请提示我输入或确认；不要自动猜测。' },
+  { key: 'click', label: '单击', text: '请在当前屏幕上单击：{{目标元素}}。如果有多个相似项，先高亮并让我确认。' },
+  { key: 'screen_condition', label: '屏幕条件判断', text: '判断当前屏幕是否满足条件：{{条件描述}}。满足则继续执行，不满足则停止或提示。' },
+]
+
+function applyInstructionTemplate(value: string) {
+  if (!flowStore.activeAtom?.id) {
+    return
+  }
+
+  const source = atomFormItem.value
+  const nextValue = Array.isArray(source) && source.length > 0
+    ? source.map((item, index) => (index === 0 ? { ...item, value } : item))
+    : [{ type: 'str', value }]
+
+  flowStore.setFormItemValue('instruction', nextValue, flowStore.activeAtom.id)
+}
+
+function handleTemplateSelect({ key }: { key: string | number }) {
+  const template = cuaInstructionTemplates.find(item => item.key === String(key))
+  if (!template) return
+  applyInstructionTemplate(template.text)
+}
+
 async function openCuaDebugModal() {
   if (!flowStore.activeAtom?.id) {
     return
@@ -80,6 +108,10 @@ const showLabel = computed(() => {
 
 <template>
   <div class="form-container">
+    <div v-if="isCuaInstructionField" class="cua-debug-tip">
+      <rpa-icon name="info" size="16" class="text-[#eb6e49]" />
+      <span class="cua-debug-hint"> AI可能误判，运行将消耗增值服务积分，优先消耗赠送额度。</span>
+    </div>
     <label
       v-if="showLabel"
       class="form-container-label flex items-center gap-1 text-[rgba(0,0,0,0.45)] dark:text-[rgba(255,255,255,0.45)]"
@@ -105,14 +137,28 @@ const showLabel = computed(() => {
         {{ $t('common.createPythonScript') }}
       </span>
     </label>
-    <div v-if="isCuaInstructionField" class="cua-debug-tip">
-      <rpa-icon name="info" size="16" class="text-[#eb6e49]" />
-      <span class="cua-debug-hint"> AI可能误判，运行将消耗增值服务积分，优先消耗赠送额度。</span>
-    </div>
     <div class="form-config-wrap mt-2">
       <AtomConfig :form-item="atomFormItem" />
       <div v-if="isCuaInstructionField" class="cua-debug-trigger-row">
-        <span class="cua-debug-hint">用户指令是必填的</span>
+        <article
+          v-if="useFormItemRequired(atomFormItem)"
+          class="form-container-context-required cua-required-inline"
+        >
+          {{ $t('common.fieldIsRequired', { field: atomFormItem.title }) }}
+        </article>
+        <div class="cua-debug-actions">
+          <a-dropdown :trigger="['hover']">
+            <template #overlay>
+              <a-menu @click="handleTemplateSelect">
+                <a-menu-item v-for="item in cuaInstructionTemplates" :key="item.key">
+                  {{ item.label }}
+                </a-menu-item>
+              </a-menu>
+            </template>
+            <a-button size="small" class="cua-template-trigger">
+              模板
+            </a-button>
+          </a-dropdown>
         <a-tooltip title="Debug">
           <a-button
             size="small"
@@ -124,14 +170,9 @@ const showLabel = computed(() => {
             </template>
           </a-button>
         </a-tooltip>
+        </div>
       </div>
     </div>
-    <article
-      v-if="useFormItemRequired(atomFormItem)"
-      class="form-container-context-required"
-    >
-      {{ $t('common.fieldIsRequired', { field: atomFormItem.title }) }}
-    </article>
     <article
       v-if="atomFormItem.customizeTip"
       class="form-container-context-required"
@@ -156,15 +197,35 @@ const showLabel = computed(() => {
   .cua-debug-trigger-row {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 8px;
     margin-top: 8px;
   }
 
   .cua-debug-hint {
-    flex: 1;
-    text-align: left;
-    font-size: 12px;
-    color: #eb6e49;
+    color: #eb6e49; // 改成你想要的颜色
+  }
+
+  .cua-debug-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+  }
+
+  .cua-required-inline {
+    margin: 0;
+    margin-right: auto;
+  }
+
+  .cua-template-trigger {
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
   }
 
   .cua-debug-trigger {
@@ -181,6 +242,7 @@ const showLabel = computed(() => {
   .form-container-context-required {
     color: $color-error;
     margin: 4px 0px;
+    text-align: left;
   }
 }
 
