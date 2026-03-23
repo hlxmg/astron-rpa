@@ -14,6 +14,7 @@ import { CUA_DEBUG_STANDALONE_RUN_KEY, WINDOW_NAME } from '@/constants'
 import { windowManager } from '@/platform'
 
 const CUA_DEBUG_LOG_PATH = './.cua_debug_runs.jsonl'
+const CUA_DEBUG_CONFIG_PATH = './.cua_debug_config.json'
 const STANDALONE_EXPANDED_SIZE = { width: 360, height: 520 }
 const STANDALONE_COLLAPSED_SIZE = { width: 320, height: 300 }
 
@@ -434,6 +435,11 @@ async function handleRunOrStop() {
     resetRunEntries()
     localStorage.setItem(CUA_DEBUG_STANDALONE_RUN_KEY, '1')
     syncStandaloneRunState(true)
+    await fileWrite({
+      path: CUA_DEBUG_CONFIG_PATH,
+      mode: 'w',
+      content: JSON.stringify({ streamPath: debugStreamPath.value }),
+    })
     await fileWrite({ path: debugStreamPath.value, mode: 'w', content: '' })
     streamLineCount.value = 0
     loading.value = true

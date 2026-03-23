@@ -46,7 +46,7 @@ export const UN_AUTHORIZED_CODES = ['302', '4001', '401', '403', '900005', '9000
 
 export const VUE_APP_HELP = 'https://www.iflyrpa.com/docs/'
 // AI服务计费规则
-export const AI_BILLING_RULE_URL = 'https://www.iflyrpa.com/docs/'
+export const AI_BILLING_RULE_URL = 'https://www.iflyrpa.com/docs/topics/billing-rules.html'
 
 export const paginationConfig: TablePaginationConfig = {
   hideOnSinglePage: true,

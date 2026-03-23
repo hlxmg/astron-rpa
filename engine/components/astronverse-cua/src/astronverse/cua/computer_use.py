@@ -79,18 +79,15 @@ class ComputerUseAgent:
     def __init__(
         self,
         max_steps: int = 20,
-        temperature: float = 0.0,
     ):
         """
         初始化Agent
 
         Args:
             max_steps: 最大执行步数
-            temperature: 模型温度参数
         """
 
         self.max_steps = max_steps
-        self.temperature = temperature
 
         # 设置截图目录
         self.screenshot_dir = Path(tempfile.mkdtemp(prefix="cua_agent_"))
@@ -617,7 +614,6 @@ class ComputerUse:
         inputList=[
             atomicMg.param("instruction", types="Str"),
             atomicMg.param("max_steps", types="Int", required=False),
-            atomicMg.param("temperature", types="Float", required=False),
         ],
         outputList=[
             atomicMg.param("computer_use_res", types="Dict"),
@@ -626,7 +622,6 @@ class ComputerUse:
     def run(
         instruction: str,
         max_steps: int = 20,
-        temperature: float = 0.0,
     ):
         """
         运行计算机使用代理任务
@@ -634,16 +629,12 @@ class ComputerUse:
         Args:
             instruction: 用户指令
             max_steps: 最大执行步数
-            temperature: 模型温度参数
 
         Returns:
             执行结果，包含success, steps, action_steps, duration, screenshots, error等字段
         """
 
-        agent = ComputerUseAgent(
-            max_steps=max_steps,
-            temperature=temperature,
-        )
+        agent = ComputerUseAgent(max_steps=max_steps)
         result = agent.run(instruction)
 
         # 返回结果，确保所有输出参数都有值
@@ -661,7 +652,6 @@ class ComputerUse:
         inputList=[
             atomicMg.param("instruction", types="Str"),
             atomicMg.param("max_steps", types="Int", required=False),
-            atomicMg.param("temperature", types="Float", required=False),
         ],
         outputList=[
             atomicMg.param("computer_use_res", types="Dict"),
@@ -670,7 +660,6 @@ class ComputerUse:
     def custom_action_screen(
         instruction: str,
         max_steps: int = 20,
-        temperature: float = 0.0,
     ):
         """
         自定义AI操作屏幕
@@ -678,16 +667,12 @@ class ComputerUse:
         Args:
             instruction: 用户指令
             max_steps: 最大执行步数
-            temperature: 模型温度参数
 
         Returns:
             执行结果，包含success, steps, action_steps, duration, screenshots, error等字段
         """
 
-        agent = CustomActionScreen(
-            max_steps=max_steps,
-            temperature=temperature,
-        )
+        agent = CustomActionScreen(max_steps=max_steps)
         result = agent.run(instruction)
 
         # 返回结果，确保所有输出参数都有值
@@ -705,9 +690,33 @@ class ComputerUse:
     @atomicMg.atomic(
         "ComputerUse",
         inputList=[
+            atomicMg.param("instruction", types="Str", default="判断当前屏幕是否满足条件"),
+            atomicMg.param("max_steps", types="Int", required=False),
+        ],
+    )
+    def screen_condition(
+        instruction: str,
+        max_steps: int = 1,
+    ) -> bool:
+        """
+        IF屏幕满足条件 - 使用视觉大模型判断当前屏幕是否满足指定条件
+
+        Args:
+            instruction: 判断条件描述，如"判断谷歌浏览器是否在任务栏中"
+            max_steps: 最大执行步数，默认1（单次判断）
+
+        Returns:
+            True 表示条件满足执行流程内逻辑，False 表示不满足跳出该流程
+        """
+        agent = CustomActionScreen(max_steps=max_steps)
+        return agent.judge_screen_condition(instruction)
+
+    @staticmethod
+    @atomicMg.atomic(
+        "ComputerUse",
+        inputList=[
             atomicMg.param("instruction", types="Str", default="帮我从屏幕中提取数据，并返回 JSON 格式。"),
             atomicMg.param("max_steps", types="Int", required=False),
-            atomicMg.param("temperature", types="Float", required=False),
         ],
         outputList=[
             atomicMg.param("computer_use_res", types="Dict"),
@@ -716,7 +725,6 @@ class ComputerUse:
     def extract_data(
         instruction: str,
         max_steps: int = 1,
-        temperature: float = 0.0,
     ):
         """
         提取屏幕数据
@@ -724,16 +732,12 @@ class ComputerUse:
         Args:
             instruction: 用户指令
             max_steps: 最大执行步数
-            temperature: 模型温度参数
 
         Returns:
             执行结果，包含success, steps, action_steps, duration, screenshots, error等字段
         """
 
-        agent = CustomActionScreen(
-            max_steps=max_steps,
-            temperature=temperature,
-        )
+        agent = CustomActionScreen(max_steps=max_steps)
         result = agent.run(instruction)
 
         # 返回结果，确保所有输出参数都有值
@@ -753,7 +757,6 @@ class ComputerUse:
         inputList=[
             atomicMg.param("instruction", types="Str", default="帮我将 [数据内容] 填写到屏幕中的表单。数据内容："),
             atomicMg.param("max_steps", types="Int", required=False),
-            atomicMg.param("temperature", types="Float", required=False),
         ],
         outputList=[
             atomicMg.param("computer_use_res", types="Dict"),
@@ -762,7 +765,6 @@ class ComputerUse:
     def fill_form(
         instruction: str,
         max_steps: int = 20,
-        temperature: float = 0.0,
     ):
         """
         填写表单
@@ -770,16 +772,12 @@ class ComputerUse:
         Args:
             instruction: 用户指令
             max_steps: 最大执行步数
-            temperature: 模型温度参数
 
         Returns:
             执行结果，包含success, steps, action_steps, duration, screenshots, error等字段
         """
 
-        agent = CustomActionScreen(
-            max_steps=max_steps,
-            temperature=temperature,
-        )
+        agent = CustomActionScreen(max_steps=max_steps)
         result = agent.run(instruction)
 
         # 返回结果，确保所有输出参数都有值
@@ -799,7 +797,6 @@ class ComputerUse:
         inputList=[
             atomicMg.param("instruction", types="Str", default="帮我处理并关闭屏幕中的验证码。"),
             atomicMg.param("max_steps", types="Int", required=False),
-            atomicMg.param("temperature", types="Float", required=False),
         ],
         outputList=[
             atomicMg.param("computer_use_res", types="Dict"),
@@ -808,7 +805,6 @@ class ComputerUse:
     def process_captcha(
         instruction: str,
         max_steps: int = 20,
-        temperature: float = 0.0,
     ):
         """
         处理验证码
@@ -816,16 +812,12 @@ class ComputerUse:
         Args:
             instruction: 用户指令
             max_steps: 最大执行步数
-            temperature: 模型温度参数
 
         Returns:
             执行结果，包含success, steps, action_steps, duration, screenshots, error等字段
         """
 
-        agent = CustomActionScreen(
-            max_steps=max_steps,
-            temperature=temperature,
-        )
+        agent = CustomActionScreen(max_steps=max_steps)
         result = agent.run(instruction)
 
         # 返回结果，确保所有输出参数都有值
